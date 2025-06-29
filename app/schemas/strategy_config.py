@@ -1,0 +1,25 @@
+from pydantic import BaseModel
+from typing import Any, Dict, Optional
+
+
+class StrategyConfigBase(BaseModel):
+    name: str
+    is_active: Optional[bool] = True
+    parameters: Dict[str, Any]
+
+
+class StrategyConfigCreate(StrategyConfigBase):
+    pass
+
+
+class StrategyConfigUpdate(BaseModel):
+    is_active: Optional[bool] = None
+    parameters: Optional[Dict[str, Any]] = None
+
+
+class StrategyConfigRead(StrategyConfigBase):
+    id: int
+
+    model_config = {
+        "from_attributes": True
+    }
