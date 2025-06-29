@@ -1,7 +1,7 @@
 from sqlalchemy import select, update, delete
 
 from app.repositories.base_repository import BaseRepository
-from app.models import UserSettings
+from app.models.trade_models import UserSettings
 
 
 class UserSettingsRepository(BaseRepository):
