@@ -1,0 +1,10 @@
+from app.clients.binance_client import BinanceClientFactory
+from app.clients.client_factory import ExchangeClientFactory
+
+
+
+def get_factory_by_name(exchange: str) -> ExchangeClientFactory:
+    if exchange == "binance":
+        return BinanceClientFactory(testnet=True)
+    else:
+        raise ValueError("Unknown exchange")
