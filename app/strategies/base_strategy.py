@@ -1,8 +1,8 @@
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 from pandas import DataFrame
 
 
-class BaseStrategy(ABCMeta):
+class BaseStrategy(ABC):
     def __init__(self, config: dict):
         self.config = config
 

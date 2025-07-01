@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Список сделок{% endblock %}
+{% block content %}
+<h2>Список сделок</h2>
+<table>
+    <tr>
+        <th>ID</th>
+        <th>Символ</th>
+        <th>Сторона</th>
+        <th>Вход</th>
+        <th>Размер</th>
+        <th>Статус</th>
+        <th></th>
+    </tr>
+    {% for deal in deals %}
+    <tr>
+        <td>{{ deal.id }}</td>
+        <td>{{ deal.symbol }}</td>
+        <td>{{ deal.side }}</td>
+        <td>{{ deal.entry_price }}</td>
+        <td>{{ deal.size }}</td>
+        <td>{{ deal.status }}</td>
+        <td>
+            <a href="/deals/ui/{{ deal.id }}">Подробнее</a>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+{% endblock %}

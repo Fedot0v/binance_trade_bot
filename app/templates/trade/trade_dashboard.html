@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Управление ботом{% endblock %}
+{% block content %}
+<h2>Торговый бот — пользователь #{{ user_id }}</h2>
+<div>
+    <b>Статус:</b> {{ status }}
+</div>
+<form method="post" action="/trade/ui/{{ user_id }}/start/" style="display:inline;">
+    <button type="submit">Запустить бота</button>
+</form>
+<form method="post" action="/trade/ui/{{ user_id }}/stop/" style="display:inline;">
+    <button type="submit">Остановить бота</button>
+</form>
+<hr>
+<h3>Логи</h3>
+<pre>
+{% for log in logs %}
+{{ log.timestamp }} — {{ log.message }}
+{% endfor %}
+</pre>
+<a href="/users/ui/{{ user_id }}">Назад к профилю пользователя</a>
+{% endblock %}

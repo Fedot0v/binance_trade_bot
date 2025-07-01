@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Novichok++ Бот{% endblock %}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; background: #f9f9f9;}
+        .container { display: flex; min-height: 100vh; }
+        .sidebar {
+            background: #222c37;
+            color: #fff;
+            width: 220px;
+            padding: 32px 16px 16px 16px;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        .sidebar h2 { font-size: 1.2em; margin-bottom: 24px; letter-spacing: 1px; }
+        .sidebar a {
+            color: #e6e6e6;
+            text-decoration: none;
+            padding: 8px 0;
+            display: block;
+            border-radius: 6px;
+            margin-bottom: 4px;
+            transition: background 0.18s;
+        }
+        .sidebar a:hover, .sidebar a.active {
+            background: #0058ff;
+            color: #fff;
+        }
+        .main { flex: 1; padding: 40px; background: #fff; border-radius: 0 14px 14px 0; }
+    </style>
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <div class="container">
+        <nav class="sidebar">
+            <h2>Меню</h2>
+            <a href="/users/ui/">Пользователи</a>
+            <a href="/user-settings/list/">Настройки пользователя</a>
+            <a href="/strategy-config/list/">Стратегии</a>
+            <a href="/deals/ui/">Сделки</a>
+            <a href="/apikeys/ui/">API-ключи</a>
+            <a href="/trade/ui/hub/">Торговый бот</a>
+            <!-- Добавляй любые другие роутеры -->
+        </nav>
+        <div class="main">
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+</body>
+</html>

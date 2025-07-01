@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Инфо о пользователе{% endblock %}
+{% block content %}
+<h2>Пользователь #{{ user.id }}</h2>
+<p><strong>Имя:</strong> {{ user.name }}</p>
+
+<hr>
+<h3>API-ключ</h3>
+{% if apikey %}
+    <div><b>Key:</b> {{ apikey.api_key[:8] }}*******</div>
+    <div><b>Статус:</b> {{ "Активен" if apikey.is_active else "Отключен" }}</div>
+    <a href="/users/ui/{{ user.id }}/apikey/edit/">Редактировать API-ключ</a>
+{% else %}
+    <div>API-ключ не привязан.</div>
+    <a href="/users/ui/{{ user.id }}/apikey/create/">Добавить API-ключ</a>
+{% endif %}
+
+<a href="/users/ui/">Назад к списку</a>
+{% endblock %}

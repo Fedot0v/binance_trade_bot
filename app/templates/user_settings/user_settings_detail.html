@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Детали настроек{% endblock %}
+{% block content %}
+<h2>Настройки #{{ settings.id }}</h2>
+<ul>
+    <li>Депозит: {{ settings.deposit }}</li>
+    <li>Плечо: {{ settings.leverage }}</li>
+    <li>% входа: {{ settings.entry_pct }}</li>
+    <li>Стратегия: {{ settings.strategy_name }}</li>
+</ul>
+<a href="/user-settings/list/?user_id={{ settings.user_id }}">Назад к списку</a>
+{% endblock %}

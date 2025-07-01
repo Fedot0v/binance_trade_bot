@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Пользователи{% endblock %}
+{% block content %}
+<h2>Список пользователей</h2>
+<table>
+    <tr>
+        <th>ID</th>
+        <th>Имя</th>
+        <th></th>
+    </tr>
+    {% for user in users %}
+    <tr>
+        <td>{{ user.id }}</td>
+        <td>{{ user.name }}</td>
+        <td><a href="/users/ui/{{ user.id }}">Подробнее</a></td>
+    </tr>
+    {% endfor %}
+</table>
+<a href="/users/ui/create/">Создать пользователя</a>
+{% endblock %}

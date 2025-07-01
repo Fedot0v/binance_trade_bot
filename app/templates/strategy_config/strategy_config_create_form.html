@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Добавить стратегию{% endblock %}
+{% block content %}
+<h2>Добавить стратегию</h2>
+<form method="post" action="/strategy-config/create/">
+    <label>Название: <input type="text" name="name" required></label><br>
+    <label>Описание:
+        <textarea name="description" rows="3" style="width:350px;">{{ description or "" }}</textarea>
+    </label><br>
+    
+    <label>Активна: <select name="is_active">
+        <option value="True">Да</option>
+        <option value="False">Нет</option>
+    </select></label><br>
+    <label>Параметры (JSON):<br>
+        <textarea name="parameters" rows="7" style="width:350px;" required>
+{
+  "ema_fast": 10,
+  "ema_slow": 30,
+  "trend_threshold": 0.002,
+  "risk_pct": 0.05,
+  "stop_loss_pct": 0.009,
+  "leverage": 10
+}
+        </textarea>
+    </label><br>
+    <button type="submit">Добавить</button>
+</form>
+<a href="/strategy-config/list/">Назад к списку</a>
+{% endblock %}
