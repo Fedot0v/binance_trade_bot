@@ -25,3 +25,7 @@ class APIKeysService:
     async def deactivate(self, id_: int, session):
         await self.repo.deactivate_by_id(id_)
         await session.commit()
+        
+    async def get_by_user(self, user_id: int) -> APIKeysRead | None:
+        record = await self.repo.get_by_user(user_id)
+        return APIKeysRead.model_validate(record) if record else None

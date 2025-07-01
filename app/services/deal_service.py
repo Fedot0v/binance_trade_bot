@@ -10,6 +10,10 @@ class DealService:
         result = await self.repo.add(**data.model_dump())
         await session.commit()
         return DealRead.model_validate(result)
+    
+    async def get_all(self) -> list[DealRead]:
+        deals = await self.repo.get_all()
+        return [DealRead.model_validate(deal) for deal in deals]
 
     async def get_open(self):
         deals = await self.repo.get_open_deals()
