@@ -1,7 +1,7 @@
 from sqlalchemy import select
 
 from app.repositories.base_repository import BaseRepository
-from app.models import MarketData
+from app.models.trade_models import MarketData
 
 
 class MarketDataRepository(BaseRepository):

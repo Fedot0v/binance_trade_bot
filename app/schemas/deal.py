@@ -12,7 +12,7 @@ class DealBase(BaseModel):
 
 
 class DealCreate(DealBase):
-    pass
+    user_id: int       # <--- Добавить user_id
 
 
 class DealUpdate(BaseModel):
@@ -24,6 +24,7 @@ class DealUpdate(BaseModel):
 
 class DealRead(DealBase):
     id: int
+    user_id: int       # <--- Добавить user_id
     exit_price: Optional[float] = None
     pnl: Optional[float] = None
     opened_at: datetime

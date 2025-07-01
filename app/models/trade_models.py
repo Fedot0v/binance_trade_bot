@@ -14,21 +14,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from app.models.base import Base
-
-
-class UserSettings(Base):
-    __tablename__ = 'user_settings'
-
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    deposit: Mapped[float] = mapped_column(Float, nullable=False)
-    leverage: Mapped[float] = mapped_column(Float, nullable=False)
-    entry_pct: Mapped[float] = mapped_column(Float, nullable=False)
-    strategy_name: Mapped[str] = mapped_column(String, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(
-        server_default=func.now(),
-        onupdate=func.now()
-    )
+from app.models.user_model import User
 
 
 class APIKeys(Base):
@@ -39,6 +25,8 @@ class APIKeys(Base):
     api_secret_encrypted: Mapped[str] = mapped_column(String, nullable=False)
     is_active: Mapped[bool] = mapped_column(default=True)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    user: Mapped["User"] = relationship("User")
 
 
 class Deal(Base):
@@ -58,6 +46,8 @@ class Deal(Base):
         "StrategyLog",
         back_populates="deal"
     )
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    user: Mapped["User"] = relationship("User")
 
 
 class StrategyLog(Base):
@@ -90,5 +80,6 @@ class StrategyConfig(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
+    description: Mapped[str] = mapped_column(Text, default="", nullable=True)
     is_active: Mapped[bool] = mapped_column(default=True)
     parameters: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)

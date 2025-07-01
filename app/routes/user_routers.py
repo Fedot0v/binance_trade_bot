@@ -1,71 +1,43 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.schemas.user_settings import (
-    UserSettingsCreate,
-    UserSettingsUpdate,
-    UserSettingsRead,
-)
-from app.services.user_service_settings import UserSettingsService
-from app.repositories.user_repository import UserSettingsRepository
+from app.repositories.user_repository import UserRepository
+from app.services.user_service_settings import UserService  # Импортируй свой сервис!
+from app.schemas.user import UserCreate, UserRead
 from app.dependencies.db_dependencie import get_session
-from app.dependencies.di_factories import get_service
+from app.dependencies.di_factories import get_service  # если используешь фабрику
 
-
-get_user_settings_service = get_service(
-    UserSettingsService,
-    UserSettingsRepository
-)
-
+# Создаём зависимость для UserService
+get_user_service = get_service(UserService, UserRepository)
 
 router = APIRouter(
-    prefix="/user-settings",
-    tags=["User Settings"]
+    prefix="/users",
+    tags=["Users"]
 )
 
-
-@router.post(
-    "/",
-    response_model=UserSettingsRead,
-    status_code=status.HTTP_201_CREATED
-)
-async def create_user_settings(
-    data: UserSettingsCreate,
-    service: UserSettingsService = Depends(get_user_settings_service),
-    session: AsyncSession = Depends(get_session),
+@router.post("/", response_model=UserRead, status_code=status.HTTP_201_CREATED)
+async def create_user(
+    data: UserCreate,
+    service: UserService = Depends(get_user_service),
+    session: AsyncSession = Depends(get_session)
 ):
-    return await service.create(data, session)
+    user = await service.create(data.name, session)
+    return UserRead.model_validate(user)
 
 
-@router.get("/{id_}", response_model=UserSettingsRead)
-async def get_user_settings(
-    id_: int,
-    service: UserSettingsService = Depends(get_user_settings_service),
+@router.get("/{user_id}", response_model=UserRead)
+async def get_user(
+    user_id: int,
+    service: UserService = Depends(get_user_service)
 ):
-    result = await service.get_by_id(id_)
-    if not result:
-        raise HTTPException(status_code=404, detail="User settings not found")
-    return result
+    user = await service.get_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return UserRead.model_validate(user)
 
-
-@router.patch("/{id_}", response_model=UserSettingsRead)
-async def update_user_settings(
-    id_: int,
-    data: UserSettingsUpdate,
-    service: UserSettingsService = Depends(get_user_settings_service),
-    session: AsyncSession = Depends(get_session),
+@router.get("/", response_model=list[UserRead])
+async def get_all_users(
+    service: UserService = Depends(get_user_service)
 ):
-    updated = await service.update(id_, data, session)
-    if not updated:
-        raise HTTPException(status_code=404, detail="User settings not found")
-    return updated
-
-
-@router.delete("/{id_}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_user_settings(
-    id_: int,
-    service: UserSettingsService = Depends(get_user_settings_service),
-    session: AsyncSession = Depends(get_session),
-):
-    await service.delete(id_, session)
-    return None
+    users = await service.get_all()
+    return [UserRead.model_validate(u) for u in users]

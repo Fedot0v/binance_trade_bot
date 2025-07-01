@@ -1,9 +1,15 @@
-from cryptography.fernet import Fernet
 import os
+
+from cryptography.fernet import Fernet
+from dotenv import load_dotenv
+
+
+load_dotenv()
 
 
 # Получаем ключ из переменной окружения или .env файла
 FERNET_KEY = os.getenv("FERNET_KEY")
+
 
 if not FERNET_KEY:
     raise ValueError("FERNET_KEY не найден. Установите его в .env")
@@ -19,11 +25,3 @@ def encrypt(data: str) -> str:
 def decrypt(token: str) -> str:
     """Дешифрует строку"""
     return fernet.decrypt(token.encode()).decode()
-
-
-# Пример генерации ключа для Fernet в терминале
-# from encryption.crypto import generate_key
-# print(generate_key())  скопируй и вставь в .env
-def generate_key() -> str:
-    """Генерирует новый Fernet-ключ"""
-    return Fernet.generate_key().decode()

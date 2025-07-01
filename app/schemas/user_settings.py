@@ -23,6 +23,7 @@ class UserSettingsUpdate(BaseModel):
 
 class UserSettingsRead(UserSettingsBase):
     id: int
+    user_id: int       # <--- Добавить user_id
     created_at: datetime
     updated_at: datetime
 

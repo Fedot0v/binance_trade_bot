@@ -8,12 +8,14 @@ class APIKeysBase(BaseModel):
 
 
 class APIKeysCreate(APIKeysBase):
+    user_id: int          # <--- Добавить user_id
     api_key: str
     api_secret: str
 
 
 class APIKeysRead(APIKeysBase):
     id: int
+    user_id: int          # <--- Добавить user_id
     created_at: datetime
 
     model_config = {
