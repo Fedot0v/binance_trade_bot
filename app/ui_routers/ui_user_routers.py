@@ -3,87 +3,109 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.services.user_service_settings import UserService
-from app.repositories.user_repository import UserRepository
-from app.dependencies.db_dependencie import get_session
-from app.dependencies.di_factories import get_service
-from app.services.apikeys_service import APIKeysService
-from app.repositories.apikeys_repository import APIKeysRepository
-from app.schemas.apikey import APIKeysCreate
+from dependencies.db_dependencie import get_session
+from dependencies.di_factories import get_service, get_apikeys_service
+from services.apikeys_service import APIKeysService
+from repositories.apikeys_repository import APIKeysRepository
+from schemas.apikey import APIKeysCreate
+from dependencies.user_dependencies import fastapi_users
+from models.user_model import User
 
 
-templates = Jinja2Templates(directory="app/templates")
+templates = Jinja2Templates(directory="templates")
 router = APIRouter(tags=["Users UI"])
 
-get_user_service = get_service(UserService, UserRepository)
-get_apikeys_service = get_service(APIKeysService, APIKeysRepository)
+current_active_user = fastapi_users.current_user(active=True)
+current_superuser = fastapi_users.current_user(superuser=True)
 
 
-# Список пользователей
-@router.get("/users/ui/")
-async def users_list(
+@router.get("/users/ui/me/")
+async def user_profile(
     request: Request,
-    service: UserService = Depends(get_user_service)
+    current_user: User = Depends(current_active_user),
+    session: AsyncSession = Depends(get_session),
+    apikey_service: APIKeysService = Depends(get_apikeys_service)
 ):
-    users = await service.get_all()
-    return templates.TemplateResponse("users/user_list.html", {"request": request, "users": users})
-
-
-# Форма создания пользователя
-@router.get("/users/ui/create/")
-async def user_create_form(request: Request):
-    return templates.TemplateResponse("users/user_create_form.html", {"request": request})
-
-
-# Обработка формы (создание пользователя)
-@router.post("/users/ui/create/")
-async def create_user(
-    request: Request,
-    name: str = Form(...),
-    service: UserService = Depends(get_user_service),
-    session: AsyncSession = Depends(get_session)
-):
-    await service.create(name, session)
-    return RedirectResponse("/users/ui/", status_code=303)
-
-
-# Страница пользователя по id
-@router.get("/users/ui/{user_id}")
-async def user_detail(
-    request: Request,
-    user_id: int,
-    service: UserService = Depends(get_user_service),
-    apikeys_service: APIKeysService = Depends(get_apikeys_service),
-):
-    user = await service.get_by_id(user_id)
-    apikey = await apikeys_service.get_by_user(user_id)  # Такой метод должен быть в сервисе/репозитории
+    apikeys = await apikey_service.get_by_user(current_user.id)
     return templates.TemplateResponse(
         "users/user_detail.html",
-        {"request": request, "user": user, "apikey": apikey}
+        {
+            "request": request,
+            "user": current_user,
+            "apikeys": apikeys,
+            "current_user": current_user,
+        }
     )
 
 
-@router.get("/test")
-async def test(request: Request):
-    return {"msg": "UI router работает"}
-
-
-@router.get("/users/ui/{user_id}/apikey/create/")
-async def apikey_create_form(request: Request, user_id: int):
-    return templates.TemplateResponse("apikeys/apikey_create_form.html", {
-        "request": request, "user_id": user_id
-    })
-
-
-@router.post("/users/ui/{user_id}/apikey/create/")
-async def apikey_create(
+# Список пользователей (видит только суперюзер)
+@router.get("/users/ui/")
+async def users_list(
     request: Request,
-    user_id: int,
-    api_key: str = Form(...),
-    api_secret: str = Form(...),
-    service: APIKeysService = Depends(get_apikeys_service),
-    session=Depends(get_session)
+    user: User = Depends(current_active_user),
+    user_manager=Depends(fastapi_users.get_user_manager),
 ):
-    data = APIKeysCreate(api_key=api_key, api_secret=api_secret, is_active=True, user_id=user_id)
-    await service.create(data, session)
-    return RedirectResponse(f"/users/ui/{user_id}", status_code=303)
+    users = await user_manager.user_db.get_all()
+    return templates.TemplateResponse("users/user_list.html", {"request": request, "users": users, "current_user": user})
+
+# Мой профиль
+@router.get("/users/ui/{user_id}")
+async def user_detail(
+    request: Request,
+    current_user: User = Depends(current_active_user),
+    session: AsyncSession = Depends(get_session),
+    apikey_service: APIKeysService = Depends(get_apikeys_service)
+):
+    apikey = await apikey_service.get_by_user(current_user.id) # как ты получаешь apikey, например, запросом к таблице APIKeys
+    return templates.TemplateResponse(
+        "users/user_detail.html",
+        {
+            "request": request,
+            "user": current_user,
+            "apikey": apikey,
+            "current_user": current_user,
+        }
+    )
+
+
+# Профиль любого пользователя (только суперюзер)
+@router.get("/users/ui/{user_id}")
+async def user_detail(
+    request: Request,
+    user_id: str,
+    current_user: User = Depends(current_superuser),
+    user_manager=Depends(fastapi_users.get_user_manager),
+    apikeys_service: APIKeysService = Depends(get_apikeys_service),
+):
+    user = await user_manager.get(user_id)
+    apikey = await apikeys_service.get_by_user(user_id)
+    return templates.TemplateResponse(
+        "users/user_detail.html",
+        {"request": request, "user": user, "apikey": apikey, "current_user": current_user}
+    )
+
+# Редактировать профиль (только себя или суперюзер)
+@router.get("/users/ui/me/edit/")
+async def edit_my_profile(
+    request: Request,
+    current_user: User = Depends(current_active_user),
+):
+    return templates.TemplateResponse("users/user_edit_form.html", {"request": request, "user": current_user})
+
+
+@router.post("/users/ui/me/edit/")
+async def edit_my_profile_post(
+    request: Request,
+    username: str = Form(...),
+    email: str = Form(...),
+    current_user: User = Depends(current_active_user),
+    user_manager=Depends(fastapi_users.get_user_manager),
+    session: AsyncSession = Depends(get_session)
+):
+    user = current_user
+    user.username = username
+    user.email = email
+    session.add(user)
+    await session.commit()
+    return RedirectResponse(f"/users/ui/me/", status_code=303)
+

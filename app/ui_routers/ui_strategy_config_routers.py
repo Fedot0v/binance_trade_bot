@@ -3,38 +3,55 @@ import json
 from fastapi import APIRouter, Request, Depends, Form
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import RedirectResponse
-from app.services.strategy_config_service import StrategyConfigService
-from app.repositories.strategy_config_repository import StrategyConfigRepository
-from app.dependencies.db_dependencie import get_session
-from app.dependencies.di_factories import get_service
-from app.schemas.strategy_config import StrategyConfigCreate, StrategyConfigUpdate
+
+from services.strategy_config_service import StrategyConfigService
+from repositories.strategy_config_repository import StrategyConfigRepository
+from dependencies.db_dependencie import get_session
+from dependencies.di_factories import get_service
+from schemas.strategy_config import StrategyConfigCreate, StrategyConfigUpdate
+from dependencies.user_dependencies import fastapi_users
+from models.user_model import User, Symbols, Intervals
 
 
-templates = Jinja2Templates(directory="app/templates")
+templates = Jinja2Templates(directory="templates")
 router = APIRouter(tags=["StrategyConfig UI"])
 
+current_active_user = fastapi_users.current_user(active=True)
+current_superuser = fastapi_users.current_user(superuser=True)
 
-get_strategy_config_service = get_service(StrategyConfigService, StrategyConfigRepository)
+get_strategy_config_service = get_service(
+    StrategyConfigService,
+    StrategyConfigRepository
+)
 
 
-# Список всех стратегий
 @router.get("/strategy-config/list/")
 async def strategy_config_list(
     request: Request,
-    service: StrategyConfigService = Depends(get_strategy_config_service)
+    config_strategy_service: StrategyConfigService = Depends(
+        get_strategy_config_service
+    ),
+    current_user: User = Depends(current_active_user)
 ):
-    configs = await service.get_active()
+    strategies = await config_strategy_service.get_active()
+    strategy_ids = await config_strategy_service.get_all_ids()
     return templates.TemplateResponse("strategy_config/strategy_config_list.html", {
         "request": request,
-        "configs": configs
+        "strategies": strategies,
+        "strategy_ids": strategy_ids,
+        "current_user": current_user
     })
 
 
 # Форма создания стратегии
 @router.get("/strategy-config/create/")
 async def strategy_config_create_form(request: Request):
+    symbols = [s.value for s in Symbols]
+    intervals = [i.value for i in Intervals]
     return templates.TemplateResponse("strategy_config/strategy_config_create_form.html", {
-        "request": request
+        "request": request,
+        "symbols": symbols,
+        "intervals": intervals,
     })
 
 
@@ -90,24 +107,47 @@ async def strategy_config_edit_form(
 
 
 # Обработка формы редактирования
-@router.post("/strategy-config/{config_id}/edit/")
-async def edit_strategy_config(
+@router.post("/strategy-config/manual-create/")
+async def strategy_config_manual_create_post(
     request: Request,
-    config_id: int,
     name: str = Form(...),
-    description: str = Form(""),
-    is_active: str = Form("True"),
-    parameters: str = Form(...),
+    description: str = Form(None),
+    is_active: str = Form("false"),
+    parameters: str = Form(...),  # Это поле для JSON-строки
     service: StrategyConfigService = Depends(get_strategy_config_service),
-    session=Depends(get_session)
+    session=Depends(get_session),
 ):
-    params = json.loads(parameters)
-
-    data = StrategyConfigUpdate(
+    import json
+    try:
+        params = json.loads(parameters)
+    except Exception as e:
+        return templates.TemplateResponse(
+            "strategy_templates/strategy_config_manual_create_form.html",
+            {
+                "request": request,
+                "error": f"Ошибка в параметрах JSON: {e}"
+            }
+        )
+    is_active_bool = is_active == "true"
+    create_data = StrategyConfigCreate(
         name=name,
         description=description,
-        is_active=is_active in ("True", "true", "1"),
+        is_active=is_active_bool,
         parameters=params
     )
-    await service.update(config_id, data, session)
-    return RedirectResponse(f"/strategy-config/list/", status_code=303)
+    await service.create(create_data, session)
+    return RedirectResponse("/strategy-config/list/", status_code=303)
+
+
+@router.get("/strategy-config/manual-create/")
+async def strategy_config_manual_create_form(
+    request: Request,
+    current_user: User = Depends(current_active_user)
+    ):
+    return templates.TemplateResponse(
+        "strategy_templates/strategy_config_manual_create_form.html",
+        {
+            "request": request,
+            "current_user": current_user,
+        }
+    )
