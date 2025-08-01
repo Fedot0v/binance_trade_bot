@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.services.apikeys_service import APIKeysService
-from app.schemas.apikey import APIKeysCreate, APIKeysRead
-from app.dependencies.db_dependencie import get_session
-from app.dependencies.di_factories import get_service
-from app.repositories.apikeys_repository import APIKeysRepository
+from services.apikeys_service import APIKeysService
+from schemas.apikey import APIKeysCreate, APIKeysRead
+from dependencies.db_dependencie import get_session
+from dependencies.di_factories import get_service
+from repositories.apikeys_repository import APIKeysRepository
 
 
 get_apikeys_service = get_service(
@@ -17,7 +17,11 @@ get_apikeys_service = get_service(
 router = APIRouter(prefix="/apikeys", tags=["API Keys"])
 
 
-@router.post("/", response_model=APIKeysRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    response_model=APIKeysRead,
+    status_code=status.HTTP_201_CREATED
+)
 async def create_apikey(
     data: APIKeysCreate,
     service: APIKeysService = Depends(get_apikeys_service),

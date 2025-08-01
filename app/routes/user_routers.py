@@ -1,43 +1,44 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.repositories.user_repository import UserRepository
-from app.services.user_service_settings import UserService  # Импортируй свой сервис!
-from app.schemas.user import UserCreate, UserRead
-from app.dependencies.db_dependencie import get_session
-from app.dependencies.di_factories import get_service  # если используешь фабрику
+from schemas.user import UserCreate, UserRead
+from dependencies.db_dependencie import get_session
+from dependencies.di_factories import get_service  # если используешь фабрику
+from dependencies.user_dependencies import fastapi_users
+from models.user_model import User
 
-# Создаём зависимость для UserService
-get_user_service = get_service(UserService, UserRepository)
 
 router = APIRouter(
     prefix="/users",
     tags=["Users"]
 )
 
-@router.post("/", response_model=UserRead, status_code=status.HTTP_201_CREATED)
-async def create_user(
-    data: UserCreate,
-    service: UserService = Depends(get_user_service),
-    session: AsyncSession = Depends(get_session)
-):
-    user = await service.create(data.name, session)
-    return UserRead.model_validate(user)
+
+current_active_user = fastapi_users.current_user(active=True)
+current_superuser = fastapi_users.current_user(superuser=True)
+
+
+
+@router.get("/me", response_model=UserRead)
+async def get_me(user: User = Depends(current_active_user)):
+    return user
 
 
 @router.get("/{user_id}", response_model=UserRead)
 async def get_user(
-    user_id: int,
-    service: UserService = Depends(get_user_service)
+    user_id: str,
+    user: User = Depends(current_superuser),
+    user_manager=Depends(fastapi_users.get_user_manager),
 ):
-    user = await service.get_by_id(user_id)
-    if not user:
+    user_obj = await user_manager.get(user_id)
+    if not user_obj:
         raise HTTPException(status_code=404, detail="User not found")
-    return UserRead.model_validate(user)
+    return user_obj
+
 
 @router.get("/", response_model=list[UserRead])
 async def get_all_users(
-    service: UserService = Depends(get_user_service)
+    user: User = Depends(current_superuser),
+    user_manager=Depends(fastapi_users.get_user_manager),
 ):
-    users = await service.get_all()
-    return [UserRead.model_validate(u) for u in users]
+    return await user_manager.user_db.get_all()

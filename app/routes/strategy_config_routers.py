@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.services.strategy_config_service import StrategyConfigService
-from app.schemas.strategy_config import StrategyConfigCreate, StrategyConfigUpdate, StrategyConfigRead
-from app.dependencies.db_dependencie import get_session
-from app.dependencies.di_factories import get_service
-from app.repositories.strategy_config_repository import StrategyConfigRepository
+
+from services.strategy_config_service import StrategyConfigService
+from schemas.strategy_config import StrategyConfigCreate, StrategyConfigUpdate, StrategyConfigRead
+from dependencies.db_dependencie import get_session
+from dependencies.di_factories import get_service
+from repositories.strategy_config_repository import StrategyConfigRepository
 
 
 get_strategy_config_service = get_service(
@@ -16,7 +17,11 @@ get_strategy_config_service = get_service(
 router = APIRouter(prefix="/strategy-config", tags=["Strategy Config"])
 
 
-@router.post("/", response_model=StrategyConfigRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    response_model=StrategyConfigRead,
+    status_code=status.HTTP_201_CREATED
+)
 async def create_strategy_config(
     data: StrategyConfigCreate,
     service: StrategyConfigService = Depends(get_strategy_config_service),

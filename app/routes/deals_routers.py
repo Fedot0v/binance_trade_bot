@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.services.deal_service import DealService
-from app.schemas.deal import DealCreate, DealRead
-from app.dependencies.db_dependencie import get_session
-from app.dependencies.di_factories import get_service
-from app.repositories.deal_repository import DealRepository
+from services.deal_service import DealService
+from schemas.deal import DealCreate, DealRead
+from dependencies.db_dependencie import get_session
+from dependencies.di_factories import get_service
+from repositories.deal_repository import DealRepository
+
 
 get_deal_service = get_service(
     DealService,
