@@ -1,5 +1,5 @@
-from app.strategies.novichok_strategy import NovichokStrategy
-from app.strategies.base_strategy import BaseStrategy
+from strategies.novichok_strategy import NovichokStrategy
+from strategies.base_strategy import BaseStrategy
 
 
 STRATEGY_REGISTRY = {

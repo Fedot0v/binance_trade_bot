@@ -1,6 +1,7 @@
 import pandas as pd
 
-from app.strategies.base_strategy import BaseStrategy
+from strategies.base_strategy import BaseStrategy
+from services.strategy_parameters import StrategyParameters
 
 
 # class NovichokStrategy(BaseStrategy):
@@ -39,21 +40,26 @@ from app.strategies.base_strategy import BaseStrategy
 #     def calculate_position_size(self, balance: float) -> float:
 #         return balance * self.config['risk_pct']
 class NovichokStrategy(BaseStrategy):
-    def generate_signal(self, df: pd.DataFrame) -> str:
-        ema_fast = df['close'].ewm(span=self.config['ema_fast']).mean()
-        ema_slow = df['close'].ewm(span=self.config['ema_slow']).mean()
+    def __init__(self, params: StrategyParameters):
+        self.params = params
 
-        if len(df) < self.config['ema_slow']:
+        self.ema_fast = self.params.get_int("ema_fast", 10)
+        self.ema_slow = self.params.get_int("ema_slow", 30)
+        self.trend_threshold = self.params.get_float("trend_threshold", 0.001)
+        self.risk_pct = self.params.get_float("deposit_prct", 5.0)
+
+    def generate_signal(self, df: pd.DataFrame) -> str:
+        if len(df) < self.ema_slow:
             return 'hold'
+
+        ema_fast = df['close'].ewm(span=self.ema_fast).mean()
+        ema_slow = df['close'].ewm(span=self.ema_slow).mean()
 
         diff = abs(ema_fast.iloc[-1] - ema_slow.iloc[-1]) / ema_slow.iloc[-1]
-        if diff < self.config['trend_threshold']:
+        if diff < self.trend_threshold:
             return 'hold'
 
-        if ema_fast.iloc[-1] > ema_slow.iloc[-1]:
-            return 'long'
-        else:
-            return 'short'
+        return 'long' if ema_fast.iloc[-1] > ema_slow.iloc[-1] else 'short'
 
     def calculate_position_size(self, balance: float) -> float:
-        return balance * self.config['risk_pct']
+        return balance * self.risk_pct / 100
