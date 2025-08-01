@@ -1,13 +1,15 @@
 import asyncio
-from app.db.database import engine
-from app.models.base import Base
-from app.models.trade_models import (
+
+from db.database import engine
+from models.base import Base
+from models.trade_models import (
     Deal,
     StrategyLog,
-    MarketData,
-    StrategyConfig
+    StrategyConfig,
+    APIKeys
 )
-from app.models.user_model import User, UserSettings
+from models.user_model import User, UserStrategyTemplate, Intervals, Symbols
+from models.bot_model import UserBot
 
 
 async def init_db():
