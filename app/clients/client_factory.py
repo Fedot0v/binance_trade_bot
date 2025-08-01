@@ -11,3 +11,9 @@ class ExchangeClientFactory(ABC):
         Возвращает асинхронного клиента для биржи.
         """
         pass
+    
+    async def close(self, client):
+        """
+        Закрывает асинхронного клиента.
+        """
+        pass
