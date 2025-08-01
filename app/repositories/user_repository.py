@@ -1,88 +1,77 @@
-from typing import Sequence
+from typing import Sequence, Optional
 
 from sqlalchemy import select, update, delete
 
+from repositories.base_repository import BaseRepository
+from models.user_model import UserStrategyTemplate, User
+from models.trade_models import StrategyConfig
 
-from app.repositories.base_repository import BaseRepository
-from app.models.user_model import UserSettings, User
 
-
-class UserSettingsRepository(BaseRepository):
-    async def add(
-        self,
-        user_id: int,
-        deposit: float,
-        leverage: float,
-        entry_pct: float,
-        strategy_name: str
-    ):
-        settings = UserSettings(
-            user_id=user_id,
-            deposit=deposit,
-            leverage=leverage,
-            entry_pct=entry_pct,
-            strategy_name=strategy_name
-        )
-        self.db.add(settings)
+class UserStrategyTemplateRepository(BaseRepository):
+    async def add(self, user_id: int, **kwargs):
+        template = UserStrategyTemplate(user_id=user_id, **kwargs)
+        self.db.add(template)
         await self.db.flush()
-        await self.db.refresh(settings)
-        return settings
-    
-    async def get_all(self, user_id: int) -> Sequence[UserSettings]:
+        await self.db.refresh(template)
+        return template
+
+    async def get_all(self, user_id: int) -> Sequence[UserStrategyTemplate]:
         result = await self.db.execute(
-            select(UserSettings)
-            .where(UserSettings.user_id == user_id)
+            select(UserStrategyTemplate)
+            .where(UserStrategyTemplate.user_id == user_id)
         )
         return result.scalars().all()
 
     async def get_by_id(self, id_: int, user_id: int):
         result = await self.db.execute(
-            select(UserSettings)
-            .where(
-                UserSettings.id == id_,
-                UserSettings.user_id == user_id
+            select(UserStrategyTemplate).where(
+                UserStrategyTemplate.id == id_,
+                UserStrategyTemplate.user_id == user_id
             )
         )
         return result.scalar_one_or_none()
 
     async def update_by_id(self, id_: int, user_id: int, **kwargs):
         await self.db.execute(
-            update(UserSettings)
-            .where(UserSettings.id == id_, UserSettings.user_id == user_id)
+            update(UserStrategyTemplate)
+            .where(
+                UserStrategyTemplate.id == id_,
+                UserStrategyTemplate.user_id == user_id
+            )
             .values(**kwargs)
         )
         await self.db.flush()
 
     async def delete_by_id(self, id_: int, user_id: int):
         await self.db.execute(
-            delete(UserSettings)
-            .where(UserSettings.id == id_, UserSettings.user_id == user_id)
+            delete(UserStrategyTemplate)
+            .where(
+                UserStrategyTemplate.id == id_,
+                UserStrategyTemplate.user_id == user_id
+            )
         )
         await self.db.flush()
-
-
-
-class UserRepository(BaseRepository):
-
-    async def add(self, name: str):
-        user = User(name=name)
-        self.db.add(user)
+        
+    async def get_active(self, user_id):
+        result = await self.db.execute(
+            select(UserStrategyTemplate)
+            .where(UserStrategyTemplate.user_id == user_id)
+            .where(UserStrategyTemplate.is_active is True)
+        )
+        return result.scalar_one_or_none()
+        
+    async def set_active(self, user_id: int, template_id: int):
+        await self.db.execute(
+            update(UserStrategyTemplate)
+            .where(UserStrategyTemplate.user_id == user_id)
+            .values(is_active=False)
+        )
+        await self.db.execute(
+            update(UserStrategyTemplate)
+            .where(
+                UserStrategyTemplate.user_id == user_id,
+                UserStrategyTemplate.id == template_id
+            )
+            .values(is_active=True)
+        )
         await self.db.flush()
-        await self.db.refresh(user)
-        return user
-
-    async def get_by_id(self, user_id: int):
-        result = await self.db.execute(
-            select(User).where(User.id == user_id)
-        )
-        return result.scalar_one_or_none()
-
-    async def get_by_name(self, name: str):
-        result = await self.db.execute(
-            select(User).where(User.name == name)
-        )
-        return result.scalar_one_or_none()
-
-    async def get_all(self):
-        result = await self.db.execute(select(User))
-        return result.scalars().all()
