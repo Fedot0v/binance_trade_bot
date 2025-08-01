@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, delete
 
-from app.models.trade_models import StrategyConfig
+from models.trade_models import StrategyConfig
 
 
 class StrategyConfigRepository:
@@ -53,3 +53,13 @@ class StrategyConfigRepository:
             .where(StrategyConfig.is_active.is_(True))
         )
         return result.scalars().all()
+    
+    async def get_parameters_by_id(self, config_id: int) -> dict | None:
+        strategy = await self.get_by_id(config_id)
+        return strategy.parameters if strategy else None
+
+    async def get_all_ids(self) -> list[int]:
+        result = await self.db.execute(
+            select(StrategyConfig.id)
+        )
+        return [row[0] for row in result.all()]
