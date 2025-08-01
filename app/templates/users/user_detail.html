@@ -1,19 +1,45 @@
 {% extends "base.html" %}
 {% block title %}Инфо о пользователе{% endblock %}
 {% block content %}
-<h2>Пользователь #{{ user.id }}</h2>
-<p><strong>Имя:</strong> {{ user.name }}</p>
+<div class="user-detail">
+    <h2>Пользователь #{{ user.id }}</h2>
+    <div class="user-info">
+        <div><strong>Имя:</strong> {{ user.username }}</div>
+        <div><strong>Email:</strong> {{ user.email }}</div>
+        <div class="user-detail-meta">
+            <span>current_user.id = {{ current_user.id }}</span> |
+            <span>user.id = {{ user.id }}</span>
+        </div>
+    </div>
+    <hr>
+    <h3>API-ключи</h3>
+    {% if apikeys and apikeys|length > 0 %}
+        <div class="apikey-list">
+        {% for apikey in apikeys %}
+            <div class="apikey-card">
+                <div>
+                    <b>Key:</b> {{ apikey.api_key_encrypted[:8] }}*******
+                    <div><b>Статус:</b> {{ "Активен" if apikey.is_active else "Отключен" }}</div>
+                </div>
+                {% if current_user and current_user.id|string == user.id|string %}
+                    <form method="post" action="/users/ui/me/apikey/delete/{{ apikey.id }}/">
+                        <button type="submit" onclick="return confirm('Удалить ключ?');">Удалить</button>
+                    </form>
+                {% endif %}
+            </div>
+        {% endfor %}
+        </div>
+    {% else %}
+        <div class="apikey-empty">API-ключ не привязан.</div>
+        {% if current_user and current_user.id|string == user.id|string %}
+            <a href="/users/ui/me/apikey/create/" class="button">Добавить API-ключ</a>
+        {% endif %}
+    {% endif %}
 
-<hr>
-<h3>API-ключ</h3>
-{% if apikey %}
-    <div><b>Key:</b> {{ apikey.api_key[:8] }}*******</div>
-    <div><b>Статус:</b> {{ "Активен" if apikey.is_active else "Отключен" }}</div>
-    <a href="/users/ui/{{ user.id }}/apikey/edit/">Редактировать API-ключ</a>
-{% else %}
-    <div>API-ключ не привязан.</div>
-    <a href="/users/ui/{{ user.id }}/apikey/create/">Добавить API-ключ</a>
-{% endif %}
-
-<a href="/users/ui/">Назад к списку</a>
+    <div class="user-detail-actions">
+        {% if current_user and current_user.id|string == user.id|string %}
+            <a href="/users/ui/me/edit/" class="button">Редактировать профиль</a>
+        {% endif %}
+    </div>
+</div>
 {% endblock %}

@@ -1,31 +1,33 @@
 {% extends "base.html" %}
 {% block title %}Список стратегий{% endblock %}
 {% block content %}
-<h2>Список стратегий</h2>
-<a href="/strategy-config/create/">Добавить стратегию</a>
-<table>
-    <tr>
-        <th>ID</th>
-        <th>Название</th>
-        <th>Описание</th>
-        <th>Активна</th>
-        <th>Параметры</th>
-        <th></th>
-    </tr>
-    {% for item in configs %}
-    <tr>
-        <td>{{ item.id }}</td>
-        <td>{{ item.name }}</td>
-        <td>{{ item.description }}</td>
-        <td>{{ item.is_active }}</td>
-        <td>
-            <pre style="font-size:0.92em;">{{ item.parameters | tojson(indent=2) }}</pre>
-        </td>
-        <td>
-            <a href="/strategy-config/{{ item.id }}">Подробнее</a> |
-            <a href="/strategy-config/{{ item.id }}/edit/">Редактировать</a>
-        </td>
-    </tr>
-    {% endfor %}
-</table>
+<div class="strategy-list">
+    <h2>Все стратегии</h2>
+    <a href="/strategy-config/manual-create/" class="button">Создать стратегию вручную (JSON)</a>
+    <p style="color:#888;">Стратегий найдено: {{ strategies|length }}</p>
+
+    <div class="strategy-list-grid">
+        {% for s in strategies %}
+        <div class="strategy-card">
+            <div class="strategy-title">
+                {{ s.name }} {% if not s.is_active %}<span class="not-active">(неактивна)</span>{% endif %}
+            </div>
+            <div class="strategy-desc">{{ s.description or "Без описания" }}</div>
+            <div class="strategy-id"><b>ID:</b> {{ s.id }}</div>
+            <div class="strategy-params">
+                <b>Параметры:</b>
+                <ul>
+                    {% for key, value in s.parameters.items() %}
+                        <li><b>{{ key }}</b>: {{ value }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div class="strategy-actions">
+                <a href="/strategy-config/{{ s.id }}" class="button-small">Подробнее</a>
+                <a href="/strategy-config/{{ s.id }}/edit/" class="button-small">Редактировать</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
 {% endblock %}

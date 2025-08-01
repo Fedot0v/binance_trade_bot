@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Мои шаблоны стратегий{% endblock %}
+{% block content %}
+<div class="templates-list">
+    <h2>Мои шаблоны стратегий</h2>
+    <a href="/strategy-templates/create/?user_id={{ user_id }}" class="button">Создать шаблон</a>
+    <table class="data-table">
+        <tr>
+            <th>ID</th>
+            <th>Название</th>
+            <th>Стратегия</th>
+            <th>Депозит</th>
+            <th>Плечо</th>
+            <th>Риск, %</th>
+            <th>Описание</th>
+            <th></th>
+        </tr>
+        {% for t in templates %}
+        <tr>
+            <td>{{ t.id }}</td>
+            <td>{{ t.template_name }}</td>
+            <td>{{ t.strategy_config_id }}</td>
+            <td>{{ t.deposit }}</td>
+            <td>{{ t.leverage }}</td>
+            <td>{{ t.entry_pct }}</td>
+            <td>{{ t.description or "" }}</td>
+            <td>
+                <a href="/strategy-templates/{{ t.id }}" class="button-small">Подробнее</a>
+                <a href="/strategy-templates/{{ t.id }}/edit/?user_id={{ user_id }}" class="button-small">Редактировать</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+{% endblock %}

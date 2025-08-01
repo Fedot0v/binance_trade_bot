@@ -1,17 +1,23 @@
 {% extends "base.html" %}
 {% block title %}Закрыть сделку{% endblock %}
 {% block content %}
-<h2>Закрыть сделку #{{ deal.id }}</h2>
-<form method="post" action="/deals/ui/{{ deal.id }}/edit/">
-    <label>Цена выхода: <input type="number" step="0.01" name="exit_price" value="{{ deal.exit_price or '' }}" required></label><br>
-    <label>PNL: <input type="number" step="0.01" name="pnl" value="{{ deal.pnl or '' }}" required></label><br>
-    <label>Статус:
-        <select name="status">
-            <option value="closed" {% if deal.status == 'closed' %}selected{% endif %}>Закрыта</option>
-            <option value="open" {% if deal.status == 'open' %}selected{% endif %}>Открыта</option>
-        </select>
-    </label><br>
-    <button type="submit">Закрыть</button>
-</form>
-<a href="/deals/ui/">Назад к списку</a>
+<div class="deal-form">
+    <h2>Закрыть сделку #{{ deal.id }}</h2>
+    <form method="post" action="/deals/ui/{{ deal.id }}/edit/">
+        <label>Цена выхода:
+            <input type="number" step="0.01" name="exit_price" value="{{ deal.exit_price or '' }}" required>
+        </label>
+        <label>PNL:
+            <input type="number" step="0.01" name="pnl" value="{{ deal.pnl or '' }}" required>
+        </label>
+        <label>Статус:
+            <select name="status">
+                <option value="closed" {% if deal.status == 'closed' %}selected{% endif %}>Закрыта</option>
+                <option value="open" {% if deal.status == 'open' %}selected{% endif %}>Открыта</option>
+            </select>
+        </label>
+        <button type="submit" class="button">Закрыть</button>
+    </form>
+    <a href="/deals/ui/" class="button-secondary">Назад к списку</a>
+</div>
 {% endblock %}

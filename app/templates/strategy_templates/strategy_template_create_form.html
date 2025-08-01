@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Создать шаблон стратегии{% endblock %}
+{% block content %}
+<div class="template-form">
+    <h2>Создать шаблон стратегии</h2>
+    <form method="get" action="/strategy-templates/create/" class="form-select-strategy">
+        <label>Стратегия:
+            <select name="strategy_config_id" required onchange="this.form.submit()">
+                <option value="">Выберите стратегию</option>
+                {% for strategy in strategies %}
+                    <option value="{{ strategy.id }}"
+                        {% if strategy_config_id and strategy.id == strategy_config_id|int %}selected{% endif %}
+                    >{{ strategy.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <noscript><button type="submit" class="button">Показать параметры</button></noscript>
+    </form>
+
+    <form method="post" action="/strategy-templates/create/" class="form-main">
+        <label>Название шаблона:
+            <input type="text" name="template_name" required>
+        </label>
+        <label>Описание:
+            <input type="text" name="description">
+        </label>
+        <label>Плечо:
+            <input type="number" name="leverage" step="any" required>
+        </label>
+        <input type="hidden" name="strategy_config_id" value="{{ strategy_config_id }}">
+        <label>Тикер (symbol):
+            <select name="symbol" required>
+                {% for s in symbols %}
+                    <option value="{{ s }}">{{ s }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Таймфрейм (interval):
+            <select name="interval" required>
+                {% for i in intervals %}
+                    <option value="{{ i }}">{{ i }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        {% if parameters %}
+            <h4>Параметры стратегии:</h4>
+            {% for key, value in parameters.items() %}
+                <label>{{ key }}:
+                    <input type="text" name="param_{{ key }}" value="{{ value }}">
+                </label>
+            {% endfor %}
+        {% endif %}
+        <button type="submit" class="button">Сохранить</button>
+    </form>
+    <a href="/strategy-templates/list/" class="button-secondary">Назад к списку</a>
+</div>
+{% endblock %}

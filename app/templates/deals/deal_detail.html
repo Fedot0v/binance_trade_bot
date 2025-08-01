@@ -1,16 +1,18 @@
 {% extends "base.html" %}
 {% block title %}Детали сделки{% endblock %}
 {% block content %}
-<h2>Сделка #{{ deal.id }}</h2>
-<ul>
-    <li>Символ: {{ deal.symbol }}</li>
-    <li>Сторона: {{ deal.side }}</li>
-    <li>Цена входа: {{ deal.entry_price }}</li>
-    <li>Размер: {{ deal.size }}</li>
-    <li>Статус: {{ deal.status }}</li>
-    <li>Цена выхода: {{ deal.exit_price }}</li>
-    <li>PNL: {{ deal.pnl }}</li>
-    <li>User ID: {{ deal.user_id }}</li>
-</ul>
-<a href="/deals/ui/">Назад к списку</a>
+<div class="deal-detail">
+    <h2>Сделка #{{ deal.id }}</h2>
+    <ul class="deal-ul">
+        <li><b>Символ:</b> {{ deal.symbol }}</li>
+        <li><b>Сторона:</b> {{ deal.side }}</li>
+        <li><b>Цена входа:</b> {{ deal.entry_price }}</li>
+        <li><b>Размер:</b> {{ deal.size }}</li>
+        <li><b>Статус:</b> {{ deal.status }}</li>
+        <li><b>Цена выхода:</b> {{ deal.exit_price }}</li>
+        <li><b>PNL:</b> {{ deal.pnl }}</li>
+        <li><b>User ID:</b> {{ deal.user_id }}</li>
+    </ul>
+    <a href="/deals/ui/" class="button-secondary">Назад к списку</a>
+</div>
 {% endblock %}

@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Редактирование профиля{% endblock %}
+{% block content %}
+<div class="user-form">
+    <h2>Редактировать профиль</h2>
+    <form method="post" action="/users/ui/me/edit/">
+        <label>Email:<br>
+            <input type="email" name="email" value="{{ user.email }}" required>
+        </label><br>
+        <label>Username:<br>
+            <input type="text" name="username" value="{{ user.username or '' }}" required>
+        </label><br>
+        <button type="submit" class="button">Сохранить</button>
+    </form>
+    <a href="/users/ui/me/" class="button-secondary">Назад</a>
+</div>
+{% endblock %}
