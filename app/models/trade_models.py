@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Any
+import uuid
 
 from sqlalchemy import (
     String,
@@ -8,13 +9,14 @@ from sqlalchemy import (
     ForeignKey,
     Text,
     Integer,
-    JSON
+    JSON,
+    UUID
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
-from app.models.base import Base
-from app.models.user_model import User
+from models.base import Base
+from models.user_model import User
 
 
 class APIKeys(Base):
@@ -25,7 +27,11 @@ class APIKeys(Base):
     api_secret_encrypted: Mapped[str] = mapped_column(String, nullable=False)
     is_active: Mapped[bool] = mapped_column(default=True)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id"),
+        index=True
+    )
     user: Mapped["User"] = relationship("User")
 
 
@@ -36,18 +42,41 @@ class Deal(Base):
     symbol: Mapped[str] = mapped_column(String, nullable=False)
     side: Mapped[str] = mapped_column(String, nullable=False)
     entry_price: Mapped[float] = mapped_column(Float, nullable=False)
-    exit_price: Mapped[float] = mapped_column(Float)
+    exit_price: Mapped[float] = mapped_column(Float, nullable=True)
+    stop_loss: Mapped[float] = mapped_column(Float, nullable=True)
     size: Mapped[float] = mapped_column(Float, nullable=False)
-    pnl: Mapped[float] = mapped_column(Float)
+    pnl: Mapped[float] = mapped_column(Float, nullable=True)
     status: Mapped[str] = mapped_column(String, nullable=False)
+    order_id: Mapped[str] = mapped_column(String, nullable=True)
     opened_at: Mapped[datetime] = mapped_column(server_default=func.now())
-    closed_at: Mapped[datetime] = mapped_column(DateTime)
+    closed_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     logs: Mapped[list["StrategyLog"]] = relationship(
         "StrategyLog",
         back_populates="deal"
     )
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    max_price: Mapped[float] = mapped_column(Float, nullable=True)
+    min_price: Mapped[float] = mapped_column(Float, nullable=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id"),
+        index=True
+    )
+    bot_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("user_bots.id"),
+        nullable=False
+    )
+    template_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("user_strategy_templates.id"),
+        nullable=False
+    )
+    
     user: Mapped["User"] = relationship("User")
+    bot: Mapped["UserBot"] = relationship("UserBot")
+    template: Mapped["UserStrategyTemplate"] = relationship(
+        "UserStrategyTemplate"
+    )
 
 
 class StrategyLog(Base):
@@ -58,21 +87,14 @@ class StrategyLog(Base):
     strategy: Mapped[str] = mapped_column(String, nullable=False)
     signal: Mapped[str] = mapped_column(String, nullable=False)
     comment: Mapped[str] = mapped_column(Text)
-    deal_id: Mapped[int] = mapped_column(ForeignKey('deals.id'))
+    deal_id: Mapped[int] = mapped_column(ForeignKey('deals.id'), nullable=True)
+    user_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id"),
+        nullable=False
+    )
     deal: Mapped["Deal"] = relationship("Deal", back_populates="logs")
-
-
-class MarketData(Base):
-    __tablename__ = 'market_data'
-
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    symbol: Mapped[str] = mapped_column(String, nullable=False)
-    timestamp: Mapped[datetime] = mapped_column(DateTime, nullable=False)
-    open: Mapped[float] = mapped_column(Float, nullable=False)
-    high: Mapped[float] = mapped_column(Float, nullable=False)
-    low: Mapped[float] = mapped_column(Float, nullable=False)
-    close: Mapped[float] = mapped_column(Float, nullable=False)
-    volume: Mapped[float] = mapped_column(Float, nullable=False)
+    user = relationship("User", back_populates="strategy_logs")
 
 
 class StrategyConfig(Base):
