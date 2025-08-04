@@ -37,3 +37,4 @@ class DealRead(DealBase):
 
 class DealDelete(BaseModel):
     id: int
+    message: str

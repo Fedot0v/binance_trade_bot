@@ -1,0 +1,37 @@
+# Testing dependencies
+pytest==8.4.1
+pytest-asyncio==0.24.0
+pytest-cov==5.0.0
+pytest-mock==3.14.0
+pytest-html==4.1.1
+pytest-xdist==3.6.1
+pytest-rerunfailures==13.0
+pytest-timeout==2.3.1
+pytest-benchmark==4.1.0
+
+# HTTP testing
+httpx==0.28.1
+requests-mock==1.12.0
+
+# Database testing
+pytest-postgresql==5.0.0
+pytest-redis==4.0.0
+
+# Code quality
+black==24.10.0
+flake8==7.1.1
+mypy==1.12.0
+isort==5.13.2
+bandit==1.7.8
+
+# Documentation testing
+pytest-docstyle==1.0.0
+
+# Performance testing
+locust==3.0.0
+
+# Security testing
+safety==2.3.5
+
+# Coverage reporting
+coverage==7.4.4 

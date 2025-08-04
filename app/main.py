@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+import os
 
 
 from routes import (
@@ -30,7 +31,11 @@ app = FastAPI(
     description="Backend for Novichok++ bot",
     version="0.1.0"
 )
-app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# Определяем путь к статическим файлам
+static_dir = os.path.join(os.path.dirname(__file__), "static")
+if os.path.exists(static_dir):
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 
 # app.include_router(user_settings_routers.router)

@@ -1,29 +1,36 @@
 import pytest
 import pandas as pd
-from strategies.novichok_strategy import NovichokStrategy
+import numpy as np
+from unittest.mock import MagicMock
 
-@pytest.fixture
-def fake_market_data():
-    # Пример исторических цен
-    return {
-        "close": [30000, 30100, 29900, 30500, 30700, 30800, 30900, 30700, 30850, 30910, 31000, 31100],
-        "open": [29950, 30050, 29900, 30450, 30600, 30750, 30800, 30600, 30800, 30890, 30950, 31010],
-        "high": [30100, 30150, 29950, 30550, 30800, 30900, 31000, 30800, 30900, 31000, 31120, 31200],
-        "low":  [29900, 29950, 29800, 30400, 30500, 30700, 30800, 30600, 30700, 30800, 30900, 30980],
-        "volume": [100, 120, 110, 130, 140, 150, 160, 120, 130, 140, 150, 155],
-    }
+from strategies.novichok_strategy import NovichokStrategy
+from services.strategy_parameters import StrategyParameters
+
 
 @pytest.fixture
 def sample_strategy_params():
-    return {
-        "ema_fast": 3,
-        "ema_slow": 6,
-        "risk_pct": 0.05,
-        "trend_threshold": 0.001  # Добавь если используется
-    }
+    return StrategyParameters({
+        "ema_fast": 10,
+        "ema_slow": 30,
+        "trend_threshold": 0.001,
+        "deposit_prct": 5.0
+    })
 
-def test_strategy_signal_generation(fake_market_data, sample_strategy_params):
+
+def test_strategy_signal_generation(sample_strategy_params):
+    """Тест генерации сигнала стратегией"""
     strat = NovichokStrategy(sample_strategy_params)
-    df = pd.DataFrame(fake_market_data)
-    signal = strat.generate_signal(df)
-    assert signal in ["long", "short", "hold"]
+    
+    # Создаем тестовые данные
+    data = pd.DataFrame({
+        'close': [50000 + i * 10 for i in range(50)],
+        'open': [50000 + i * 10 - 5 for i in range(50)],
+        'high': [50000 + i * 10 + 10 for i in range(50)],
+        'low': [50000 + i * 10 - 10 for i in range(50)],
+        'volume': [100] * 50
+    })
+    
+    signal = strat.generate_signal(data)
+    
+    # Проверяем, что сигнал является одним из ожидаемых
+    assert signal in ['long', 'short', 'hold']
