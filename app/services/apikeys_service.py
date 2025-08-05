@@ -18,9 +18,9 @@ class APIKeysService:
         apikeys = await self.repo.get_active(user_id)
         return [APIKeysRead.model_validate(a) for a in apikeys]
 
-    async def deactivate(self, id_: int, session, autocommit: bool = True):
+    async def deactivate(self, id_: int, user_id: UUID, session, autocommit: bool = True):
         try:
-            await self.repo.deactivate_by_id(id_)
+            await self.repo.deactivate_by_id(id_, user_id)
             if autocommit:
                 await session.commit()
         except Exception as e:
