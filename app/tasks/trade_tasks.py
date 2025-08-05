@@ -2,7 +2,6 @@ import os
 
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
-from dotenv import load_dotenv
 
 from celery_app import celery_app
 from utils.trade_service_factory import build_trade_service
@@ -11,16 +10,13 @@ from repositories.deal_repository import DealRepository
 from utils.trade_service_factory import build_deal_service
 
 
-load_dotenv()
-
-
 @celery_app.task
 def run_active_bots():
     print("RUN_ACTIVE_BOTS LAUNCHED")
     import asyncio
 
     async def main():
-        DATABASE_URL = os.getenv("DATABASE_URL")
+        DATABASE_URL = os.environ.get("DATABASE_URL")
         engine = create_async_engine(DATABASE_URL, echo=True)
         async_session = sessionmaker(
             bind=engine,
@@ -63,7 +59,7 @@ def periodic_trade_cycle(bot_id, user_id, symbol):
             else user_id
         )
 
-        DATABASE_URL = os.getenv("DATABASE_URL")
+        DATABASE_URL = os.environ.get("DATABASE_URL")
         engine = create_async_engine(DATABASE_URL, echo=False)
         async_session = sessionmaker(
             bind=engine,
@@ -89,7 +85,7 @@ def watcher_update_deals():
     import asyncio
 
     async def main():
-        DATABASE_URL = os.getenv("DATABASE_URL")
+        DATABASE_URL = os.environ.get("DATABASE_URL")
         engine = create_async_engine(DATABASE_URL, echo=False)
         async_session = sessionmaker(
             bind=engine,
