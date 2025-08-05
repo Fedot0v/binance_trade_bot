@@ -56,7 +56,7 @@ class UserStrategyTemplateRepository(BaseRepository):
         result = await self.db.execute(
             select(UserStrategyTemplate)
             .where(UserStrategyTemplate.user_id == user_id)
-            .where(UserStrategyTemplate.is_active is True)
+            .where(UserStrategyTemplate.is_active.is_(True)
         )
         return result.scalar_one_or_none()
         
