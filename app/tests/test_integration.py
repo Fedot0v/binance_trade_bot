@@ -28,12 +28,10 @@ class TestTradingIntegration:
         """Создаем правильный мок для асинхронной сессии"""
         session = AsyncMock()
         
-        # Создаем мок для контекстного менеджера
         context_manager = AsyncMock()
         context_manager.__aenter__ = AsyncMock(return_value=session)
         context_manager.__aexit__ = AsyncMock(return_value=None)
         
-        # Привязываем контекстный менеджер к session.begin()
         session.begin.return_value = context_manager
         
         return session
@@ -125,7 +123,6 @@ class TestTradingIntegration:
     ):
         """Тест полного торгового цикла с сигналом на покупку"""
         
-        # Создаем моки всех сервисов
         mock_deal_service = AsyncMock()
         mock_apikeys_service = AsyncMock()
         mock_marketdata_service = AsyncMock()
@@ -137,7 +134,6 @@ class TestTradingIntegration:
         mock_userbot_service = AsyncMock()
         mock_exchange_client_factory = MagicMock()
 
-        # Настраиваем моки
         mock_userbot_service.get_active_bot.return_value = MagicMock(status="running")
         mock_deal_service.get_open_deal_for_user_and_symbol.return_value = None
         mock_apikeys_service.get_api_keys.return_value = sample_api_keys
@@ -151,7 +147,6 @@ class TestTradingIntegration:
             "price": 50000.0
         }
 
-        # Создаем TradeService с моками
         trade_service = TradeService(
             base_strategy=MagicMock(),
             deal_service=mock_deal_service,
@@ -166,9 +161,7 @@ class TestTradingIntegration:
             userbot_service=mock_userbot_service
         )
 
-        # Мокаем генерацию сигнала для возврата 'long'
         with patch.object(trade_service, 'run_trading_cycle', new_callable=AsyncMock) as mock_run_cycle:
-            # Выполняем торговый цикл
             await trade_service.run_trading_cycle(
                 sample_bot_id,
                 sample_user_id,
@@ -176,7 +169,6 @@ class TestTradingIntegration:
                 session=mock_session
             )
 
-        # Проверяем, что метод был вызван
         mock_run_cycle.assert_called_once_with(
             sample_bot_id,
             sample_user_id,
@@ -198,7 +190,6 @@ class TestTradingIntegration:
     ):
         """Тест торгового цикла с сигналом hold"""
         
-        # Создаем моки
         mock_deal_service = AsyncMock()
         mock_apikeys_service = AsyncMock()
         mock_marketdata_service = AsyncMock()
@@ -210,7 +201,6 @@ class TestTradingIntegration:
         mock_userbot_service = AsyncMock()
         mock_exchange_client_factory = MagicMock()
 
-        # Настраиваем моки
         mock_userbot_service.get_active_bot.return_value = MagicMock(status="running")
         mock_deal_service.get_open_deal_for_user_and_symbol.return_value = None
         mock_apikeys_service.get_api_keys.return_value = sample_api_keys
@@ -218,7 +208,6 @@ class TestTradingIntegration:
         mock_strategy_config_service.get_by_id.return_value = sample_strategy_config
         mock_marketdata_service.get_klines.return_value = sample_market_data
 
-        # Создаем TradeService
         trade_service = TradeService(
             base_strategy=MagicMock(),
             deal_service=mock_deal_service,
@@ -233,9 +222,7 @@ class TestTradingIntegration:
             userbot_service=mock_userbot_service
         )
 
-        # Мокаем генерацию сигнала для возврата 'hold'
         with patch.object(trade_service, 'run_trading_cycle', new_callable=AsyncMock) as mock_run_cycle:
-            # Выполняем торговый цикл
             await trade_service.run_trading_cycle(
                 sample_bot_id,
                 sample_user_id,
@@ -243,7 +230,6 @@ class TestTradingIntegration:
                 session=mock_session
             )
 
-        # Проверяем, что метод был вызван
         mock_run_cycle.assert_called_once_with(
             sample_bot_id,
             sample_user_id,
@@ -261,8 +247,7 @@ class TestTradingIntegration:
         sample_deal
     ):
         """Тест создания и управления сделками"""
-        
-        # Создаем моки
+
         mock_repo = AsyncMock()
         mock_binance_client = MagicMock()
         mock_apikeys_service = AsyncMock()
@@ -273,7 +258,6 @@ class TestTradingIntegration:
         mock_repo.get_all.return_value = [sample_deal]
         mock_repo.get_by_id.return_value = sample_deal
 
-        # Создаем DealService
         deal_service = DealService(
             repo=mock_repo,
             binance_client=mock_binance_client,
@@ -281,10 +265,9 @@ class TestTradingIntegration:
             log_service=mock_log_service
         )
 
-        # Создаем данные для новой сделки
         deal_data = DealCreate(
-            user_id=uuid4(),  # Используем UUID вместо строки
-            bot_id=1,  # Используем int вместо строки
+            user_id=uuid4(),
+            bot_id=1,
             template_id=1,
             symbol=sample_symbol,
             side="long",
@@ -294,22 +277,18 @@ class TestTradingIntegration:
             status="open"
         )
 
-        # Создаем сделку
         created_deal = await deal_service.create(deal_data, mock_session)
         
-        # Проверяем создание
         assert created_deal.id == 1
         assert created_deal.symbol == sample_symbol
         assert created_deal.side == "long"
         mock_repo.add.assert_called_once()
         mock_session.commit.assert_called_once()
 
-        # Получаем все сделки
         all_deals = await deal_service.get_all()
         assert len(all_deals) == 1
         assert all_deals[0].id == 1
 
-        # Получаем сделку по ID
         deal_by_id = await deal_service.get_by_id(1, mock_session)
         assert deal_by_id.id == 1
         assert deal_by_id.symbol == sample_symbol
@@ -322,25 +301,20 @@ class TestTradingIntegration:
     ):
         """Тест интеграции стратегии с реальными данными"""
         
-        # Создаем параметры стратегии
         params = StrategyParameters(sample_strategy_config.parameters)
         
-        # Создаем стратегию
         strategy = NovichokStrategy(params)
         
-        # Генерируем сигнал
         signal = strategy.generate_signal(sample_market_data)
         
         # Проверяем, что сигнал валидный
         assert signal in ['long', 'short', 'hold']
         
-        # Рассчитываем размер позиции
         balance = 10000.0
         position_size = strategy.calculate_position_size(balance)
-        
-        # Проверяем расчет позиции
+
         assert position_size > 0
-        assert position_size <= balance * 0.05  # 5% от баланса
+        assert position_size <= balance * 0.05
 
     @pytest.mark.asyncio
     async def test_error_handling_in_trading_cycle(
@@ -352,7 +326,6 @@ class TestTradingIntegration:
     ):
         """Тест обработки ошибок в торговом цикле"""
         
-        # Создаем моки
         mock_deal_service = AsyncMock()
         mock_apikeys_service = AsyncMock()
         mock_marketdata_service = AsyncMock()
@@ -364,12 +337,10 @@ class TestTradingIntegration:
         mock_userbot_service = AsyncMock()
         mock_exchange_client_factory = MagicMock()
 
-        # Настраиваем моки для симуляции ошибки
         mock_userbot_service.get_active_bot.return_value = MagicMock(status="running")
         mock_deal_service.get_open_deal_for_user_and_symbol.return_value = None
         mock_apikeys_service.get_api_keys.return_value = (None, None)  # Нет API ключей
 
-        # Создаем TradeService
         trade_service = TradeService(
             base_strategy=MagicMock(),
             deal_service=mock_deal_service,
@@ -384,7 +355,6 @@ class TestTradingIntegration:
             userbot_service=mock_userbot_service
         )
 
-        # Выполняем торговый цикл (должен завершиться без ошибок)
         with patch.object(trade_service, 'run_trading_cycle', new_callable=AsyncMock) as mock_run_cycle:
             await trade_service.run_trading_cycle(
                 sample_bot_id,
@@ -393,7 +363,6 @@ class TestTradingIntegration:
                 session=mock_session
             )
 
-        # Проверяем, что метод был вызван
         mock_run_cycle.assert_called_once_with(
             sample_bot_id,
             sample_user_id,
@@ -417,10 +386,8 @@ class TestTradingIntegration:
         mock_apikeys_service = AsyncMock()
         mock_log_service = AsyncMock()
 
-        # Настраиваем моки для симуляции существующей открытой сделки
         mock_repo.get_open_deal_by_symbol.return_value = sample_deal
 
-        # Создаем DealService
         deal_service = DealService(
             repo=mock_repo,
             binance_client=mock_binance_client,
@@ -428,12 +395,10 @@ class TestTradingIntegration:
             log_service=mock_log_service
         )
 
-        # Проверяем получение открытой сделки
         open_deal = await deal_service.get_open_deal_for_user_and_symbol(
             sample_user_id, sample_symbol
         )
         
-        # Проверяем результат
         assert open_deal is not None
         assert open_deal.id == 1
         assert open_deal.symbol == sample_symbol

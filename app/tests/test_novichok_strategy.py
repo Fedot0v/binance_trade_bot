@@ -21,7 +21,6 @@ def test_strategy_signal_generation(sample_strategy_params):
     """Тест генерации сигнала стратегией"""
     strat = NovichokStrategy(sample_strategy_params)
     
-    # Создаем тестовые данные
     data = pd.DataFrame({
         'close': [50000 + i * 10 for i in range(50)],
         'open': [50000 + i * 10 - 5 for i in range(50)],
@@ -32,5 +31,4 @@ def test_strategy_signal_generation(sample_strategy_params):
     
     signal = strat.generate_signal(data)
     
-    # Проверяем, что сигнал является одним из ожидаемых
     assert signal in ['long', 'short', 'hold']
