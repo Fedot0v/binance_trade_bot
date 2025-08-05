@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Создать стратегию вручную{% endblock %}
+{% block content %}
+<div class="strategy-form">
+    <h2>Создать стратегию вручную (JSON)</h2>
+    <form method="post" action="/strategy-config/manual-create/">
+        <label>Название стратегии:
+            <input type="text" name="name" required>
+        </label>
+        <label>Описание:
+            <input type="text" name="description">
+        </label>
+        <label>
+            <input type="checkbox" name="is_active" value="true" checked>
+            Стратегия активна
+        </label>
+        <label>Параметры стратегии (JSON):
+            <textarea name="parameters" rows="10" cols="70" placeholder='{"ema_fast": 12, "ema_slow": 32, "trend_threshold": 0.001}' required></textarea>
+        </label>
+        <button type="submit" class="button">Сохранить</button>
+    </form>
+    <a href="/strategy-config/list/" class="button-secondary">Назад к стратегиям</a>
+</div>
+{% endblock %}

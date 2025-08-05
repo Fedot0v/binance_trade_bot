@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Бэктест стратегии</h2>
+
+<form action="/backtest/run/" method="post" enctype="multipart/form-data">
+    <label for="template_id">Выберите шаблон стратегии:</label>
+    <select name="template_id" id="template_id">
+        {% for tpl in templates %}
+            <option value="{{ tpl.id }}">{{ tpl.template_name }}</option>
+        {% endfor %}
+    </select>
+    <br><br>
+    <label for="file">CSV-файл со свечами (TradingView: timestamp,open,high,low,close,volume):</label>
+    <input type="file" name="file" id="file" accept=".csv" required>
+    <br><br>
+    <p>
+        Перед запуском бэктеста скачайте CSV-файл свечей.<br>
+        Формат файла: <b>timestamp,open,high,low,close,volume</b>
+        <br>
+        Где скачать:<br>
+        • <a href="https://www.tradingview.com/chart/" target="_blank">TradingView</a> (правый клик → Export chart data)<br>
+        • <a href="https://www.cryptodatadownload.com/data/" target="_blank">cryptodatadownload.com</a> (раздел Crypto Exchanges)<br>
+        • <a href="https://www.kaggle.com/datasets" target="_blank">Kaggle</a> (поиск: "crypto candles csv")
+      </p>
+    <input type="submit" value="Запустить бэктест">
+</form>
+
+{% if result %}
+<hr>
+<h3>Результаты бэктеста</h3>
+<p>Изначальный баланс: {{ result.initial_balance }}</p>
+<p>Финальный баланс: {{ result.final_balance }}</p>
+<p>Общий PnL: {{ result.total_pnl }}</p>
+<p>Всего сделок: {{ result.num_deals }}</p>
+<p>Профитных: {{ result.profitable_deals }} | Убыточных: {{ result.loss_deals }}</p>
+<p>Winrate: {{ "%.2f"|format(result.winrate) }}%</p>
+<h4>Сделки:</h4>
+<table border="1">
+    <tr>
+        <th>Вход</th><th>Выход</th><th>Сайд</th><th>PnL (%)</th><th>Статус</th><th>Время открытия</th><th>Время закрытия</th>
+    </tr>
+    {% for d in result.deals %}
+        <tr>
+            <td>{{ d.entry_price }}</td>
+            <td>{{ d.exit_price }}</td>
+            <td>{{ d.side }}</td>
+            <td>{{ "%.2f"|format(d.pnl_pct) }}</td>
+            <td>{{ d.status }}</td>
+            <td>{{ d.open_time }}</td>
+            <td>{{ d.close_time }}</td>
+        </tr>
+    {% endfor %}
+</table>
+{% endif %}
+{% endblock %}

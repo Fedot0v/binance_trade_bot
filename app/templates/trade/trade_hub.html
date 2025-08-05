@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% block title %}Торговый Хаб{% endblock %}
+{% block content %}
+<div class="trade-hub">
+    <h2>Торговый бот — управление</h2>
+
+    {% if user_balance is not none %}
+        <div class="th-balance">
+            <b>Общий баланс пользователя (USDT):</b>
+            <span class="th-balance-value">{{ user_balance }}</span>
+            <form method="post" action="/trade/ui/refresh-balance/" class="inline-form">
+                <button type="submit" title="Обновить баланс">&#x21bb;</button>
+            </form>
+        </div>
+    {% else %}
+        <div class="th-balance">
+            <form method="post" action="/trade/ui/user-balance/" class="inline-form">
+                <button type="submit">Запросить баланс</button>
+            </form>
+            <span class="th-balance-note">
+                Баланс ещё не получен, нажмите кнопку для запроса
+            </span>
+        </div>
+    {% endif %}
+
+    {% if apikey and apikey.is_active %}
+        <div class="th-apikey th-apikey-active">API-ключ активен</div>
+    {% else %}
+        <div class="th-apikey th-apikey-inactive">Нет активного Binance API-ключа</div>
+    {% endif %}
+
+    <hr>
+
+    <h3>Текущий активный шаблон</h3>
+    {% if apikey and apikey.is_active and active_template %}
+        <div class="th-template-block">
+            <b>Шаблон:</b> {{ active_template.template_name }}<br>
+            <b>Тикер:</b> {{ active_template.symbol.value }}<br>
+            <b>Таймфрейм:</b> {{ active_template.interval.value }}<br>
+            <b>Плечо:</b> {{ active_template.leverage }}<br>
+            <b>Доля депозита (entry_pct):</b> {{ active_template.entry_pct }}<br>
+            <b>Депозит (лимит):</b> {{ active_template.deposit }}<br>
+            <b>Стратегия:</b> {{ strategy_config.name }}<br>
+            <b>Параметры стратегии:</b>
+            <ul class="th-params-list">
+                {% for key, value in active_template.parameters.items() %}
+                    <li><b>{{ key }}</b>: {{ value }}</li>
+                {% endfor %}
+            </ul>
+            <hr>
+            <div>
+                {% if balance %}
+                    <b>Баланс Binance (USDT):</b> {{ balance.available }}
+                    {% if active_template.initial_balance %}
+                        <span>
+                            {% if template_profit > 0 %}
+                                <span class="th-profit-positive">+{{ template_profit_pct }}% ({{ template_profit }} USDT)</span>
+                            {% elif template_profit < 0 %}
+                                <span class="th-profit-negative">{{ template_profit_pct }}% ({{ template_profit }} USDT)</span>
+                            {% else %}
+                                <span class="th-profit-zero">0%</span>
+                            {% endif %}
+                        </span>
+                        <span class="th-balance-initial">(Старт: {{ active_template.initial_balance }})</span>
+                    {% else %}
+                        <form method="post" action="/strategy-templates/fix-initial-balance/{{ active_template.id }}/" class="inline-form">
+                            <button type="submit" class="button-th-green">Зафиксировать стартовый баланс</button>
+                            <span class="th-balance-note">Запомнить баланс как стартовый для шаблона</span>
+                        </form>
+                    {% endif %}
+                {% else %}
+                    {% if active_template.initial_balance %}
+                        <span class="th-balance-initial">
+                            Стартовый баланс зафиксирован: <b>{{ active_template.initial_balance }}</b><br>
+                            <span class="th-profit-negative">Получите текущий баланс пользователя выше для расчёта доходности.</span>
+                        </span>
+                    {% else %}
+                        <form method="post" action="/strategy-templates/fix-initial-balance/{{ active_template.id }}/" class="inline-form">
+                            <button type="submit" class="button-th-green">Зафиксировать стартовый баланс</button>
+                            <span class="th-balance-note">Запомнить баланс как стартовый для шаблона</span>
+                        </form>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    {% else %}
+        <i>Нет активного шаблона!</i>
+    {% endif %}
+
+    <div class="th-bot-status">
+        <b>Статус бота:</b>
+        {% if active_bot and active_bot.status == 'active' %}
+            <span class="th-bot-active">Активен</span>
+            <form method="post" action="/trade/ui/stop/" class="inline-form">
+                <button type="submit" class="button-small">Остановить</button>
+            </form>
+        {% else %}
+            <span class="th-bot-inactive">Остановлен</span>
+            <form method="post" action="/trade/ui/start/" class="inline-form">
+                <button type="submit" class="button-small">Запустить</button>
+            </form>
+        {% endif %}
+    </div>
+
+    <hr>
+
+    <h3>Все ваши шаблоны</h3>
+    {% if all_templates_data %}
+        {% for tdata in all_templates_data %}
+        {% set template = tdata.tpl %}
+        {% set strategy_cfg = tdata.strategy_config %}
+        <div class="th-template-small {% if template.is_active %}th-template-active{% endif %}">
+            <b>{{ template.template_name }}</b>
+            <span class="th-template-symbol">({{ template.symbol.value }}/{{ template.interval.value }})</span>
+            {% if template.is_active %}
+                <span class="th-active-label">— Активный</span>
+            {% else %}
+                <form method="post" action="/strategy-templates/set-active/{{ template.id }}/" class="inline-form">
+                    <button type="submit" class="button-small">Сделать активным</button>
+                </form>
+            {% endif %}
+            <div class="th-template-meta">
+                <b>Плечо:</b> {{ template.leverage }},
+                <b>entry_pct:</b> {{ template.entry_pct }},
+                <b>депозит:</b> {{ template.deposit }}
+            </div>
+            {% if template.initial_balance %}
+                <div class="th-template-balance">
+                    Стартовый баланс: {{ template.initial_balance }}
+                    {% if tdata.profit is not none and tdata.profit_pct is not none %}
+                        <span>
+                            {% if tdata.profit > 0 %}
+                                <span class="th-profit-positive">+{{ tdata.profit_pct }}% ({{ tdata.profit }} USDT)</span>
+                            {% elif tdata.profit < 0 %}
+                                <span class="th-profit-negative">{{ tdata.profit_pct }}% ({{ tdata.profit }} USDT)</span>
+                            {% else %}
+                                <span class="th-profit-zero">0%</span>
+                            {% endif %}
+                        </span>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+    {% endfor %}
+    {% else %}
+        <i>Нет ни одного шаблона.</i>
+    {% endif %}
+
+    <hr>
+    <h3>Последняя сделка</h3>
+    {% if last_deal %}
+        <div class="th-last-deal">
+            <b>{{ last_deal.symbol }}</b> {{ last_deal.side }}<br>
+            Entry: {{ last_deal.entry_price }}<br>
+            Exit: {{ last_deal.exit_price or "—" }}<br>
+            <b>PnL:</b> {{ last_deal.pnl or "—" }}
+        </div>
+    {% else %}
+        <i>Нет сделок.</i>
+    {% endif %} 
+
+    <hr>
+    <ul class="th-menu">
+        <li><a href="/deals/ui/">Мои сделки</a></li>
+        <li><a href="/strategy-config/list/">Стратегии</a></li>
+        <li><a href="/strategy-templates/list/">Мои настройки</a></li>
+        <li><a href="/users/ui/me">Профиль пользователя</a></li>
+    </ul>
+    <hr>
+    <h3>Логи</h3>
+    <pre class="trade-hub-logs">
+{% for log in logs %}
+{{ log.timestamp }} — {{ log.message }}
+{% endfor %}
+    </pre>
+</div>
+{% endblock %}

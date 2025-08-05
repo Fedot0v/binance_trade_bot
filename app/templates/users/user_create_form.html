@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Создать пользователя{% endblock %}
+{% block content %}
+<div class="user-form">
+    <h2>Создать пользователя</h2>
+    <form method="post" action="/users/ui/create/">
+        <label>Имя пользователя:
+            <input type="text" name="username" required>
+        </label>
+        <button type="submit" class="button">Создать</button>
+    </form>
+    <a href="/users/ui/" class="button-secondary">К списку пользователей</a>
+</div>
+{% endblock %}

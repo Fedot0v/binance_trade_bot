@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Открыть сделку{% endblock %}
+{% block content %}
+<div class="deal-form">
+    <h2>Открыть новую сделку</h2>
+    <form method="post" action="/deals/ui/create/">
+        <label>Символ:
+            <input type="text" name="symbol" value="BTCUSDT" required>
+        </label>
+        <label>Сторона:
+            <select name="side">
+                <option value="long">Лонг</option>
+                <option value="short">Шорт</option>
+            </select>
+        </label>
+        <label>Цена входа:
+            <input type="number" step="0.01" name="entry_price" required>
+        </label>
+        <label>Размер:
+            <input type="number" step="0.0001" name="size" required>
+        </label>
+        <label>Статус:
+            <select name="status">
+                <option value="open">Открыта</option>
+                <option value="closed">Закрыта</option>
+            </select>
+        </label>
+        <label>User ID:
+            <input type="number" name="user_id" required>
+        </label>
+        <button type="submit" class="button">Открыть</button>
+    </form>
+    <a href="/deals/ui/" class="button-secondary">Назад к списку</a>
+</div>
+{% endblock %}

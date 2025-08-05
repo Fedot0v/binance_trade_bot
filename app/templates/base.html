@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Novichok++ Бот{% endblock %}</title>
+    <link rel="stylesheet" href="/static/style.css">
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <div class="container">
+        <nav class="sidebar">
+            <h2>Меню</h2>
+            <a href="/">🏠 Главная</a>
+            <a href="/users/ui/me/">👤 Профиль</a>
+            <a href="/strategy-templates/list/">⚙️ Настройки пользователя</a>
+            <a href="/strategy-config/list/">📊 Стратегии</a>
+            <a href="/deals/ui/">📋 Сделки</a>
+            <a href="/trade/ui/hub/">💰 Торговый бот</a>
+            <a href="/logs/">🗒️ Логи</a>
+            <a href="/backtest/run/">🔍 Бэктест стратегии</a>
+            <!-- Добавляй любые другие роутеры -->
+        </nav>
+        <div class="main">
+            {% if current_user %}
+                <div class="user-bar">
+                    <b>Вы:</b> {{ current_user.username }} |
+                    <a href="/users/ui/me/">Профиль</a> |
+                    <a href="/ui/logout/">Выйти</a>
+                </div>
+            {% else %}
+                <div class="user-bar">
+                    <a href="/ui/login/">Войти</a>
+                </div>
+            {% endif %}
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+</body>
+</html>

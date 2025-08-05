@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Редактировать стратегию{% endblock %}
+{% block content %}
+<div class="strategy-form">
+    <h2>Редактировать стратегию #{{ config.id }}</h2>
+    <form method="post" action="/strategy-config/{{ config.id }}/edit/">
+        <label>Название:
+            <input type="text" name="name" value="{{ config.name }}" required>
+        </label>
+        <label>Описание:
+            <textarea name="description" rows="3">{{ config.description }}</textarea>
+        </label>
+        <label>Активна:
+            <select name="is_active">
+                <option value="True" {% if config.is_active %}selected{% endif %}>Да</option>
+                <option value="False" {% if not config.is_active %}selected{% endif %}>Нет</option>
+            </select>
+        </label>
+        <label>Параметры (JSON):
+            <textarea name="parameters" rows="7" required>{{ config.parameters | tojson(indent=2) }}</textarea>
+        </label>
+        <button type="submit" class="button">Сохранить</button>
+    </form>
+    <a href="/strategy-config/list/" class="button-secondary">Назад к списку</a>
+</div>
+{% endblock %}

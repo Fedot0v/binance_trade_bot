@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Вход{% endblock %}
+{% block content %}
+<h2>Вход</h2>
+<div id="error" style="color:red"></div>
+<form id="loginForm" autocomplete="on">
+    <label>Email: <input type="email" name="username" required></label>
+    <label>Пароль: <input type="password" name="password" required></label>
+    <button type="submit">Войти</button>
+</form>
+<a href="/ui/register/">Нет аккаунта? Зарегистрироваться</a>
+<script>
+document.getElementById('loginForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    let form = e.target;
+    let data = new FormData(form);
+    let response = await fetch('/auth/jwt/login', {
+        method: 'POST',
+        body: data,
+        credentials: 'same-origin'
+    });
+    if (response.status === 204) {
+        // Логин успешен, кука установилась
+        window.location.href = '/users/ui/me/';
+    } else {
+        // Ошибка: неверные данные
+        let text = await response.text();
+        let errorDiv = document.getElementById('error');
+        errorDiv.innerText = 'Неверный логин или пароль';
+    }
+});
+</script>
+{% endblock %}

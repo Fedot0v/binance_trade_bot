@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Шаблон стратегии{% endblock %}
+{% block content %}
+<div class="template-detail">
+    <h2>Шаблон "{{ template.template_name }}"</h2>
+    <ul class="template-ul">
+        <li><b>ID:</b> {{ template.id }}</li>
+        <li><b>Стратегия:</b> {{ template.strategy_config_id }}</li>
+        <li><b>Плечо:</b> {{ template.leverage }}</li>
+        <li><b>Описание:</b> {{ template.description or "—" }}</li>
+        <li><b>Параметры:</b>
+            <pre class="template-json">{{ template.parameters|tojson(indent=2) }}</pre>
+        </li>
+    </ul>
+    <div class="template-actions">
+        <a href="/strategy-templates/{{ template.id }}/edit/?user_id={{ template.user_id }}" class="button">Редактировать</a>
+        <a href="/strategy-templates/list/?user_id={{ template.user_id }}" class="button-secondary">Назад к списку</a>
+    </div>
+</div>
+{% endblock %}

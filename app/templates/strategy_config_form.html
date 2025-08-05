@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Добавить стратегию{% endblock %}
+{% block content %}
+<h2>Добавить стратегию</h2>
+<form action="/strategy-config/create/" method="post">
+    <label>Название
+        <input type="text" name="name" value="Novichok++ BTCUSDT" required>
+    </label>
+    <label>Описание
+        <input type="text" name="description" value="EMA 10/30 + тренд-фильтр">
+    </label>
+    <label>Активна
+        <select name="is_active">
+            <option value="true" selected>Да</option>
+            <option value="false">Нет</option>
+        </select>
+    </label>
+    <label>Параметры (JSON)
+        <textarea name="parameters" rows="5" required>
+{
+  "ema_fast": 10,
+  "ema_slow": 30,
+  "trend_threshold": 0.002,
+  "risk_pct": 0.05,
+  "stop_loss_pct": 0.009,
+  "leverage": 10
+}
+        </textarea>
+    </label>
+    <button type="submit">Добавить стратегию</button>
+</form>
+{% endblock %}

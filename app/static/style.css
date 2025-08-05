@@ -1,0 +1,333 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    background: #181A20 !important;      /* Главный чёрный фон Binance */
+    color: #EAECEF !important;           /* Бело-серый текст */
+}
+
+a, a:visited, a:active {
+    color: #F0B90B;
+    text-decoration: none;
+    transition: color 0.16s;
+}
+a:hover {
+    color: #fff;
+}
+
+.container {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* Сайдбар и навигация */
+.sidebar {
+    background: #23262F !important;
+    color: #EAECEF !important;
+    border-radius: 0 0 14px 0;
+}
+.sidebar h2 {
+    color: #F0B90B !important;
+}
+.sidebar a {
+    color: #EAECEF !important;
+    background: transparent !important;
+    font-weight: 600;
+    padding: 8px 0;
+    display: block;
+    border-radius: 6px;
+    margin-bottom: 4px;
+    transition: background 0.18s, color 0.18s, border-left 0.18s;
+}
+.sidebar a:hover, .sidebar a.active {
+    background: #1e2026 !important;
+    color: #F0B90B !important;
+    border-left: 3px solid #F0B90B !important;
+}
+
+/* Основной контент */
+.main, .user-detail, .deal-detail, .strategy-detail, .template-detail,
+.strategy-form, .user-form, .template-form, .deal-form {
+    background: #23262F !important;
+    color: #EAECEF !important;
+    box-shadow: 0 2px 20px #0006;
+    border-radius: 14px;
+}
+
+/* Кнопки */
+.button, .button-small, .button-th-green {
+    display: inline-block;
+    padding: 8px 20px;
+    background: linear-gradient(90deg, #F8D90F 0%, #F0B90B 100%);
+    color: #181A20 !important;
+    border: none;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 1em;
+    cursor: pointer;
+    margin: 0 6px 0 0;
+    box-shadow: 0 2px 8px #181a201c;
+    transition: background 0.18s, color 0.18s, box-shadow 0.16s;
+}
+.button:hover, .button-small:hover, .button-th-green:hover {
+    background: linear-gradient(90deg, #F0B90B 0%, #F8D90F 100%);
+    color: #23262F !important;
+    box-shadow: 0 4px 12px #0003;
+}
+.button-small {
+    padding: 6px 12px;
+    font-size: 0.96em;
+}
+.button-secondary {
+    background: #23262F !important;
+    color: #EAECEF !important;
+    border: 1px solid #F0B90B !important;
+}
+.button-secondary:hover {
+    background: #393c45 !important;
+    color: #fff !important;
+}
+.button-th-green {
+    background: linear-gradient(90deg, #38d996 0%, #36b37f 100%) !important;
+    color: #181A20 !important;
+}
+.button-th-green:hover {
+    background: linear-gradient(90deg, #2dcc83 0%, #41e07b 100%) !important;
+    color: #181A20 !important;
+}
+
+/* Таблицы */
+.data-table {
+    width: 100%;
+    background: #181A20 !important;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px #000b;
+    border-collapse: collapse;
+    margin-bottom: 24px;
+    color: #EAECEF;
+}
+.data-table th, .data-table td {
+    padding: 10px 12px;
+    border-bottom: 1.5px solid #23262F;
+    text-align: left;
+}
+.data-table th {
+    background: #23262F !important;
+    color: #F0B90B !important;
+    font-weight: 600;
+}
+.data-table tr {
+    transition: background 0.14s;
+}
+.data-table tr:hover {
+    background: #292B34;
+}
+.data-table tr:last-child td {
+    border-bottom: none;
+}
+
+/* Формы и инпуты */
+input[type="text"], input[type="number"], input[type="email"], select, textarea {
+    width: 100%;
+    padding: 8px 10px;
+    margin-top: 5px;
+    margin-bottom: 4px;
+    border-radius: 6px;
+    border: 1px solid #323546;
+    background: #181A20;
+    color: #EAECEF;
+    font-size: 1em;
+}
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border: 1.5px solid #F0B90B;
+    background: #23262F;
+}
+label {
+    color: #EAECEF;
+    font-weight: 500;
+}
+
+/* Декоративные элементы и разделители */
+hr {
+    border-bottom: 1.5px solid #393c45 !important;
+}
+.main-footer, .user-detail-meta, .th-balance-note, .deal-ul, .template-ul {
+    color: #A7A7A7 !important;
+}
+
+/* Логика сделок, логов и блоков */
+.deal-ul, .strategy-ul, .template-ul {
+    color: #EAECEF;
+    font-size: 1.08em;
+    margin-bottom: 20px;
+    list-style: none;
+    padding-left: 0;
+}
+.deal-ul li, .strategy-ul li, .template-ul li {
+    margin-bottom: 12px;
+}
+.strategy-json, .template-json {
+    background: #181A20 !important;
+    color: #EAECEF !important;
+    border-radius: 8px;
+    padding: 12px 18px;
+    font-size: 1em;
+    white-space: pre;
+    margin-top: 6px;
+}
+
+/* Trade Hub и прочие блоки */
+.trade-hub {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+.th-balance-value, .th-profit-positive {
+    color: #38d996 !important;
+}
+.th-profit-negative {
+    color: #e35c5c !important;
+}
+.th-profit-zero {
+    color: #A7A7A7 !important;
+}
+.th-active-label {
+    color: #F0B90B !important;
+}
+.th-template-active {
+    border: 1.5px solid #F0B90B;
+    background: #23262F !important;
+}
+.th-balance-initial {
+    color: #A7A7A7;
+    font-size: 0.97em;
+    margin-left: 10px;
+}
+.trade-hub-logs {
+    max-height: 220px;
+    overflow: auto;
+    background: #23262F !important;
+    color: #EAECEF !important;
+    padding: 14px;
+    border-radius: 10px;
+    font-size: 1em;
+    font-family: monospace;
+    box-shadow: 0 1px 6px #0007;
+}
+
+/* Карточки стратегий */
+.strategy-list-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 28px;
+    margin-top: 28px;
+}
+.strategy-card {
+    background: #23262F !important;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px #0003;
+    min-width: 280px;
+    max-width: 350px;
+    padding: 24px 20px 18px 22px;
+    margin-bottom: 6px;
+    flex: 1 1 310px;
+    border: 1px solid #2e2e38;
+    position: relative;
+}
+.strategy-title {
+    font-size: 1.16em;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #F0B90B;
+}
+.not-active {
+    color: #e35c5c;
+    font-size: 0.96em;
+    font-weight: 500;
+}
+.strategy-desc {
+    color: #A7A7A7;
+    font-size: 0.97em;
+    margin-bottom: 8px;
+}
+.strategy-id {
+    margin-bottom: 10px;
+    color: #EAECEF;
+}
+.strategy-params ul {
+    font-size: 1em;
+    margin: 0;
+    padding-left: 18px;
+}
+.strategy-params li {
+    margin-bottom: 3px;
+}
+.strategy-actions {
+    margin-top: 12px;
+    gap: 10px;
+}
+
+/* Мелкие доработки */
+.form-main h4, .template-form h4 {
+    margin-top: 20px;
+    margin-bottom: 10px;
+    font-size: 1.08em;
+    color: #F0B90B;
+    font-weight: 600;
+}
+::-webkit-scrollbar {
+    width: 9px;
+    background: #181A20;
+}
+::-webkit-scrollbar-thumb {
+    background: #23262F;
+    border-radius: 8px;
+}
+.link-gold {
+    color: #F0B90B !important;
+    font-weight: bold;
+    transition: color 0.15s;
+}
+.link-gold:hover {
+    color: #fff !important;
+}
+/* Убрать ограничение ширины для основных секций */
+.main,
+.trade-hub,
+.deals-list,
+.templates-list,
+.strategy-list-grid,
+.logs-list {
+    max-width: 100vw !important;
+    width: 100% !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    padding: 40px 32px 32px 32px !important;
+    background: #23262F !important;
+    min-height: 100vh;
+}
+
+/* Таблицы всегда тянутся */
+.data-table {
+    width: 100% !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+
+/* Оставляем компактными только формы и карточки */
+.deal-form,
+.template-form,
+.strategy-form,
+.user-form,
+.deal-detail,
+.strategy-detail,
+.template-detail,
+.user-detail {
+    max-width: 560px !important;
+    margin: 40px auto 24px auto !important;
+    border-radius: 14px !important;
+    box-shadow: 0 2px 20px #0006 !important;
+    background: #23262F !important;
+    padding: 36px 32px 28px 32px !important;
+}

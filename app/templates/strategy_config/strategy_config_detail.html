@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Стратегия #{{ config.id }}{% endblock %}
+{% block content %}
+<div class="strategy-detail">
+    <h2>Стратегия #{{ config.id }}</h2>
+    <ul class="strategy-ul">
+        <li><b>Название:</b> {{ config.name }}</li>
+        <li><b>Описание:</b> {{ config.description or "—" }}</li>
+        <li><b>Активна:</b> {{ "Да" if config.is_active else "Нет" }}</li>
+        <li><b>Параметры:</b>
+            <pre class="strategy-json">{{ config.parameters | tojson(indent=2) }}</pre>
+        </li>
+    </ul>
+    <div class="strategy-actions">
+        <a href="/strategy-config/{{ config.id }}/edit/" class="button">Редактировать</a>
+        <a href="/strategy-config/list/" class="button-secondary">Назад к списку</a>
+    </div>
+</div>
+{% endblock %}
