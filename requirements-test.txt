@@ -24,9 +24,6 @@ mypy==1.12.0
 isort==5.13.2
 bandit==1.7.8
 
-# Documentation testing
-pytest-docstyle==1.0.0
-
 # Performance testing
 locust==2.37.14
 
