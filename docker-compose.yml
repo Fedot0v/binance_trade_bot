@@ -29,7 +29,9 @@ services:
   backend:
     build:
       context: .
-    command: bash -c "python -m db.init_db && alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
+    command: >
+      sh -c "python db/init_db.py &&
+            uvicorn app.main:app --host 0.0.0.0 --port 8000"
     volumes:
       - ./app:/app
     ports:
