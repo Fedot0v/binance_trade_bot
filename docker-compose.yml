@@ -51,7 +51,7 @@ services:
   celery_worker:
     build:
       context: .
-    command: celery -A tasks.trade_tasks worker --loglevel=info
+      dockerfile: Dockerfile.worker
     volumes:
       - ./app:/app
     environment:
@@ -68,7 +68,7 @@ services:
   celery_beat:
     build:
       context: .
-    command: celery -A tasks.trade_tasks beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+      dockerfile: Dockerfile.beat
     volumes:
       - ./app:/app
     environment:
