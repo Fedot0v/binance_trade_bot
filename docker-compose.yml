@@ -30,7 +30,7 @@ services:
     build:
       context: .
     command: >
-      sh -c "python db/init_db.py &&
+      sh -c "ls -la && ls -la db && python db/init_db.py &&
             uvicorn app.main:app --host 0.0.0.0 --port 8000"
     volumes:
       - ./app:/app
