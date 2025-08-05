@@ -1,18 +1,14 @@
 import os
 
 from cryptography.fernet import Fernet
-from dotenv import load_dotenv
 
 
-load_dotenv()
-
-
-# Получаем ключ из переменной окружения или .env файла
-FERNET_KEY = os.getenv("FERNET_KEY")
+# Получаем ключ из переменной окружения
+FERNET_KEY = os.environ.get("FERNET_KEY")
 
 
 if not FERNET_KEY:
-    raise ValueError("FERNET_KEY не найден. Установите его в .env")
+    raise ValueError("FERNET_KEY не найден. Установите его в переменных окружения")
 
 fernet = Fernet(FERNET_KEY.encode())
 

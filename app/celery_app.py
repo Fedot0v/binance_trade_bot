@@ -1,10 +1,12 @@
+import os
+
 from celery import Celery
 
 
 celery_app = Celery(
     "binance_trade_bot",
-    broker="redis://redis:6379/0",
-    backend="redis://redis:6379/1",
+    broker=os.environ.get("CELERY_BROKER_URL"),
+    backend=os.environ.get("CELERY_BROKER_URL"),
     include=["tasks.trade_tasks"]
 )
 

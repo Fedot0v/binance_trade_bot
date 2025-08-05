@@ -1,4 +1,5 @@
 import asyncio
+from sqlalchemy.exc import ProgrammingError
 
 from db.database import engine
 from models.base import Base
@@ -13,8 +14,11 @@ from models.bot_model import UserBot
 
 
 async def init_db():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+    except ProgrammingError as e:
+        print("DB already initialized or error:", e)
 
 
 if __name__ == "__main__":
