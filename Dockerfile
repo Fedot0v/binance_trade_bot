@@ -7,5 +7,3 @@ RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
 
 COPY ./app /app
-
-RUN python -m db.init_db

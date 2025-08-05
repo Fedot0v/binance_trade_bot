@@ -3,7 +3,9 @@ import os
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
+
 DATABASE_URL = os.environ.get("DATABASE_URL")
+
 
 if not DATABASE_URL:
     raise ValueError("DATABASE_URL не найден. Установите его в переменных окружения")
