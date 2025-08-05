@@ -38,7 +38,6 @@ async def user_profile(
     )
 
 
-# Список пользователей (видит только суперюзер)
 @router.get("/users/ui/")
 async def users_list(
     request: Request,
@@ -48,29 +47,9 @@ async def users_list(
     users = await user_manager.user_db.get_all()
     return templates.TemplateResponse("users/user_list.html", {"request": request, "users": users, "current_user": user})
 
-# Мой профиль
-@router.get("/users/ui/{user_id}")
-async def user_detail(
-    request: Request,
-    current_user: User = Depends(current_active_user),
-    session: AsyncSession = Depends(get_session),
-    apikey_service: APIKeysService = Depends(get_apikeys_service)
-):
-    apikey = await apikey_service.get_by_user(current_user.id) # как ты получаешь apikey, например, запросом к таблице APIKeys
-    return templates.TemplateResponse(
-        "users/user_detail.html",
-        {
-            "request": request,
-            "user": current_user,
-            "apikey": apikey,
-            "current_user": current_user,
-        }
-    )
 
-
-# Профиль любого пользователя (только суперюзер)
 @router.get("/users/ui/{user_id}")
-async def user_detail(
+async def user_detail_by_id(
     request: Request,
     user_id: str,
     current_user: User = Depends(current_superuser),
@@ -78,13 +57,13 @@ async def user_detail(
     apikeys_service: APIKeysService = Depends(get_apikeys_service),
 ):
     user = await user_manager.get(user_id)
-    apikey = await apikeys_service.get_by_user(user_id)
+    apikeys = await apikeys_service.get_by_user(user_id)
     return templates.TemplateResponse(
         "users/user_detail.html",
-        {"request": request, "user": user, "apikey": apikey, "current_user": current_user}
+        {"request": request, "user": user, "apikeys": apikeys, "current_user": current_user}
     )
 
-# Редактировать профиль (только себя или суперюзер)
+
 @router.get("/users/ui/me/edit/")
 async def edit_my_profile(
     request: Request,
@@ -108,4 +87,3 @@ async def edit_my_profile_post(
     session.add(user)
     await session.commit()
     return RedirectResponse(f"/users/ui/me/", status_code=303)
-
