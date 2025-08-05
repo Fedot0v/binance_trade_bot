@@ -1,6 +1,8 @@
 name: CI
 
 on:
+  push:
+    branches: [ main ]
   pull_request:
     branches: [ main ]
 
@@ -28,4 +30,3 @@ jobs:
         run: |
           pip install flake8
           flake8 .
-          
