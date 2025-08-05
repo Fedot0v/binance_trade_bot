@@ -8,7 +8,6 @@ celery_app = Celery(
     include=["tasks.trade_tasks"]
 )
 
-# РАСКОММЕНТИРУЙ и поправь расписание:
 celery_app.conf.beat_schedule = {
     'run-active-bots-every-30-seconds': {
         'task': 'tasks.trade_tasks.run_active_bots',
