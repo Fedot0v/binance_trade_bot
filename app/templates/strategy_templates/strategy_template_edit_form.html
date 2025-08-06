@@ -23,14 +23,8 @@
         <label>Описание:
             <input type="text" name="description" value="{{ template.description }}">
         </label>
-        <label>Депозит:
-            <input type="number" name="deposit" step="any" value="{{ template.deposit }}" required>
-        </label>
         <label>Плечо:
             <input type="number" name="leverage" step="any" value="{{ template.leverage }}" required>
-        </label>
-        <label>Риск (entry_pct):
-            <input type="number" name="entry_pct" step="any" value="{{ template.entry_pct }}" required>
         </label>
         <input type="hidden" name="strategy_config_id" value="{{ strategy_config_id }}">
         <label>Тикер (symbol):
