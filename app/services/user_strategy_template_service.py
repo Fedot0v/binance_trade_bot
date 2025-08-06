@@ -3,6 +3,7 @@ from uuid import UUID
 from fastapi import HTTPException
 
 from repositories.user_repository import UserStrategyTemplateRepository
+
 from schemas.user_strategy_template import (
     UserStrategyTemplateCreate,
     UserStrategyTemplateUpdate,
