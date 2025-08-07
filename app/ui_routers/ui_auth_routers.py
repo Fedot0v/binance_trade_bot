@@ -17,14 +17,11 @@ router = APIRouter(tags=["auth-ui"])
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 password_helper = PasswordHelper()
 
+
 SECRET = os.environ.get("AUTH_SECRET", "SECRET")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 COOKIE_NAME = "binauth"
-
-templates = Jinja2Templates(directory="templates")
-router = APIRouter(tags=["auth-ui"])
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 @router.get("/ui/login/")
