@@ -32,9 +32,6 @@ services:
     command: >
       sh -c "ls -la && ls -la db && python db/init_db.py &&
             uvicorn app.main:app --host 0.0.0.0 --port 8000"
-    working_dir: /code/binance_trade_bot
-    volumes:
-      - ./app:/app
     ports:
       - "8000:8000"
     environment:
@@ -57,9 +54,6 @@ services:
       dockerfile: Dockerfile.worker
     command: >
       sh -c "celery -A app.celery_app worker --loglevel=info"
-    working_dir: /code/binance_trade_bot
-    volumes:
-      - ./app:/app
     environment:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       - REDIS_URL=redis://:${REDISPASSWORD}@redis:6379/0
@@ -79,9 +73,6 @@ services:
       dockerfile: Dockerfile.beat
     command: >
       sh -c "celery -A app.celery_app beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler"
-    working_dir: /code/binance_trade_bot
-    volumes:
-      - ./app:/app
     environment:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       - REDIS_URL=redis://:${REDISPASSWORD}@redis:6379/0
