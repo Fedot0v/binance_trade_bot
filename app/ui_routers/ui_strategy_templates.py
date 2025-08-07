@@ -17,7 +17,7 @@ from models.user_model import User, Symbols, Intervals
 from services.strategy_config_service import StrategyConfigService
 from encryption.crypto import decrypt
 
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory="app/templates")
 router = APIRouter(tags=["UserStrategyTemplates UI"])
 
 current_active_user = fastapi_users.current_user(active=True)

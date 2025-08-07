@@ -29,7 +29,7 @@ from tasks.trade_tasks import periodic_trade_cycle
 from services.bot_service import UserBotService
 
 
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory="app/templates")
 router = APIRouter(tags=["Trade Hub UI"])
 current_active_user = fastapi_users.current_user(active=True)
 

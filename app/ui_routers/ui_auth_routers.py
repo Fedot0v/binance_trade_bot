@@ -12,7 +12,7 @@ import httpx
 from passlib.context import CryptContext
 
 
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory="app/templates")
 router = APIRouter(tags=["auth-ui"])
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 password_helper = PasswordHelper()

@@ -10,7 +10,7 @@ from dependencies.di_factories import get_apikeys_service
 from schemas.apikey import APIKeysCreate
 
 
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory="app/templates")
 router = APIRouter(tags=["API Keys UI"])
 
 

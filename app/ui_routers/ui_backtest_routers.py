@@ -12,7 +12,7 @@ from dependencies.di_factories import get_user_strategy_template_service
 
 
 router = APIRouter()
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory="app/templates")
 backtest_service = BacktestService()
 current_active_user = fastapi_users.current_user(active=True)
 
