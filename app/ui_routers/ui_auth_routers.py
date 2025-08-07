@@ -10,7 +10,7 @@ import httpx
 from auth.user_manager import get_user_manager,  UserManager
 
 
-templates = Jinja2Templates(directory="app/templates")
+templates = Jinja2Templates(directory="app/templates/auth")
 router = APIRouter(tags=["auth-ui"])
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
