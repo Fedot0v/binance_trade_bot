@@ -73,7 +73,7 @@ services:
       context: .
       dockerfile: Dockerfile.beat
     command: >
-      sh -c "celery -A app.celery_app beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler"
+      sh -c "celery -A app.celery_app beat --loglevel=info"
     environment:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       - REDIS_URL=redis://:${REDISPASSWORD}@redis:6379/0
