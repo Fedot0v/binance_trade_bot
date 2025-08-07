@@ -38,7 +38,7 @@ services:
       - REDIS_URL=redis://:${REDISPASSWORD}@redis:6379/0
       - CELERY_BROKER_URL=redis://:${REDISPASSWORD}@redis:6379/0
       - CELERY_RESULT_BACKEND=redis://:${REDISPASSWORD}@redis:6379/1
-      - PYTHONPATH=/app/app
+      - PYTHONPATH=/app
     depends_on:
       - postgres
       - redis
@@ -58,7 +58,7 @@ services:
       - REDIS_URL=redis://:${REDISPASSWORD}@redis:6379/0
       - CELERY_BROKER_URL=redis://:${REDISPASSWORD}@redis:6379/0
       - CELERY_RESULT_BACKEND=redis://:${REDISPASSWORD}@redis:6379/1
-      - PYTHONPATH=/app/app
+      - PYTHONPATH=/app
     depends_on:
       - postgres
       - redis
@@ -78,7 +78,7 @@ services:
       - REDIS_URL=redis://:${REDISPASSWORD}@redis:6379/0
       - CELERY_BROKER_URL=redis://:${REDISPASSWORD}@redis:6379/0
       - CELERY_RESULT_BACKEND=redis://:${REDISPASSWORD}@redis:6379/1
-      - PYTHONPATH=/app/app
+      - PYTHONPATH=/app
     depends_on:
       - postgres
       - redis
