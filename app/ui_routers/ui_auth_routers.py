@@ -1,14 +1,14 @@
 import os
 
-from fastapi import APIRouter, Request, Form, Response, status
+from fastapi import APIRouter, Request, Form, Response, status, Depends, HTTPException
+from fastapi_users.password import PasswordHelper
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
-from fastapi_users.exceptions import InvalidCredentialsException
 from passlib.context import CryptContext
 import httpx
 
 from auth.config import jwt_backend as auth_backend
-from auth.user_manager import get_user_manager
+from auth.user_manager import get_user_manager,  UserManager
 
 
 templates = Jinja2Templates(directory="app/templates")
@@ -26,23 +26,28 @@ async def login_get(request: Request):
     return templates.TemplateResponse("login.html", {"request": request})
 
 
-@router.post("/login/")
-async def login_post(request: Request, response: Response):
+@router.post("/ui/login/")
+async def login_user(
+    request: Request,
+    user_manager: UserManager = Depends(get_user_manager),
+):
     form = await request.form()
-    email = form.get("username")
+    email = form.get("email")
     password = form.get("password")
 
-    user_manager = await get_user_manager()
-    try:
-        user = await user_manager.authenticate(credentials={"email": email, "password": password})
-    except InvalidCredentialsException:
-        return templates.TemplateResponse("login.html", {
-            "request": request,
-            "error": "Неверная почта или пароль"
-        })
+    user = await user_manager.get_by_email(email)
 
-    await auth_backend.login(response, user)
-    return RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
+    if not user:
+        raise HTTPException(status_code=400, detail="User not found")
+
+    password_helper = PasswordHelper()
+    valid = password_helper.verify_and_update(password, user.hashed_password)
+
+    if not valid:
+        raise HTTPException(status_code=400, detail="Incorrect password")
+
+    response = RedirectResponse("/ui/home", status_code=302)
+    return response
 
 
 @router.get("/ui/register/")
