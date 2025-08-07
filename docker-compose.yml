@@ -29,7 +29,10 @@ services:
   backend:
     build:
       context: .
-    command: bash -c "python -m db.init_db && alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
+    command: >
+      sh -c "ls -la && ls -la db && python db/init_db.py &&
+            celery -A app.tasks.trade_tasks worker --loglevel=info --beat &&
+            uvicorn app.main:app --host 0.0.0.0 --port 8000"
     volumes:
       - ./app:/app
     ports:
@@ -50,7 +53,7 @@ services:
   celery_worker:
     build:
       context: .
-    command: celery -A tasks.trade_tasks worker --loglevel=info
+      dockerfile: Dockerfile.worker
     volumes:
       - ./app:/app
     environment:
@@ -69,7 +72,7 @@ services:
   celery_beat:
     build:
       context: .
-    command: celery -A tasks.trade_tasks beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+      dockerfile: Dockerfile.beat
     volumes:
       - ./app:/app
     environment:

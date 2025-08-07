@@ -45,7 +45,7 @@ class APIKeysRepository(BaseRepository):
         result = await self.db.execute(
             select(APIKeys).where(
                 APIKeys.user_id == user_id,
-                APIKeys.is_active is True
+                APIKeys.is_active.is_(True)
             )
         )
         return result.scalars().all()
