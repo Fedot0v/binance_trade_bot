@@ -32,6 +32,7 @@ services:
     command: >
       sh -c "ls -la && ls -la db && python db/init_db.py &&
             uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    working_dir: /app
     volumes:
       - ./app:/app
     ports:
@@ -56,6 +57,7 @@ services:
       dockerfile: Dockerfile.worker
     command: >
       sh -c "celery -A app.celery_app worker --loglevel=info"
+    working_dir: /app
     volumes:
       - ./app:/app
     environment:
@@ -77,6 +79,7 @@ services:
       dockerfile: Dockerfile.beat
     command: >
       sh -c "celery -A app.celery_app beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler"
+    working_dir: /app
     volumes:
       - ./app:/app
     environment:
