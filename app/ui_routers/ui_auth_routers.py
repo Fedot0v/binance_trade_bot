@@ -7,7 +7,6 @@ from fastapi.templating import Jinja2Templates
 from passlib.context import CryptContext
 import httpx
 
-from auth.config import jwt_backend as auth_backend
 from auth.user_manager import get_user_manager,  UserManager
 
 
@@ -46,7 +45,7 @@ async def login_user(
     if not valid:
         raise HTTPException(status_code=400, detail="Incorrect password")
 
-    response = RedirectResponse("/ui/home", status_code=302)
+    response = RedirectResponse("/", status_code=302)
     return response
 
 
