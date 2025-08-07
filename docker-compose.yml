@@ -29,7 +29,7 @@ services:
   backend:
     build:
       context: .
-    working_dir: /app
+    working_dir: /app/app
     command: >
       sh -c "python -m app.db.init_db && uvicorn app.main:app --host 0.0.0.0 --port 8000"
     ports:
@@ -39,7 +39,7 @@ services:
       - REDIS_URL=redis://:${REDISPASSWORD}@redis:6379/0
       - CELERY_BROKER_URL=redis://:${REDISPASSWORD}@redis:6379/0
       - CELERY_RESULT_BACKEND=redis://:${REDISPASSWORD}@redis:6379/1
-      - PYTHONPATH=/app
+      - PYTHONPATH=/app/app
     depends_on:
       - postgres
       - redis
@@ -51,7 +51,7 @@ services:
   celery_worker:
     build:
       context: .
-    working_dir: /app
+    working_dir: /app/app
     command: >
       sh -c "celery -A app.celery_app worker --loglevel=info"
     environment:
@@ -59,7 +59,7 @@ services:
       - REDIS_URL=redis://:${REDISPASSWORD}@redis:6379/0
       - CELERY_BROKER_URL=redis://:${REDISPASSWORD}@redis:6379/0
       - CELERY_RESULT_BACKEND=redis://:${REDISPASSWORD}@redis:6379/1
-      - PYTHONPATH=/app
+      - PYTHONPATH=/app/app
     depends_on:
       - postgres
       - redis
@@ -71,7 +71,7 @@ services:
   celery_beat:
     build:
       context: .
-    working_dir: /app
+    working_dir: /app/app
     command: >
       sh -c "celery -A app.celery_app beat --loglevel=info"
     environment:
@@ -79,7 +79,7 @@ services:
       - REDIS_URL=redis://:${REDISPASSWORD}@redis:6379/0
       - CELERY_BROKER_URL=redis://:${REDISPASSWORD}@redis:6379/0
       - CELERY_RESULT_BACKEND=redis://:${REDISPASSWORD}@redis:6379/1
-      - PYTHONPATH=/app
+      - PYTHONPATH=/app/app
     depends_on:
       - postgres
       - redis
