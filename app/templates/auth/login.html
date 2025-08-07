@@ -22,7 +22,6 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
     });
 
     if (response.status === 204 || response.redirected) {
-        // Логин успешен, переход на домашнюю страницу
         window.location.href = "/ui/home/";
     } else if (response.status === 401 || response.status === 400) {
         document.getElementById("error").innerText = "Неверный логин или пароль";

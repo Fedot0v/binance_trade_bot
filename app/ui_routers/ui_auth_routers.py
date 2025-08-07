@@ -21,7 +21,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60
 COOKIE_NAME = "binauth"
 
 
-@router.get("/login/")
+@router.get("ui/login/")
 async def login_get(request: Request):
     return templates.TemplateResponse("login.html", {"request": request})
 

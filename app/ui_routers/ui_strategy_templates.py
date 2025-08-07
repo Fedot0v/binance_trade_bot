@@ -17,6 +17,7 @@ from models.user_model import User, Symbols, Intervals
 from services.strategy_config_service import StrategyConfigService
 from encryption.crypto import decrypt
 
+
 templates = Jinja2Templates(directory="app/templates")
 router = APIRouter(tags=["UserStrategyTemplates UI"])
 
@@ -25,7 +26,7 @@ current_superuser = fastapi_users.current_user(superuser=True)
 
 get_strategy_template_service = get_user_strategy_template_service
 
-# Список всех шаблонов пользователя
+
 @router.get("/strategy-templates/list/")
 async def strategy_template_list(
     request: Request,
