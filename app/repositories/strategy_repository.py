@@ -43,3 +43,9 @@ class StrategyLogRepository:
             select(StrategyLog).order_by(StrategyLog.id.desc()).limit(limit)
         )
         return result.scalars().all()
+    
+    async def get_by_user(self, user_id):
+        result = await self.db.execute(
+            select(StrategyLog).where(StrategyLog.user_id == user_id)
+        )
+        return result.scalars().all()
