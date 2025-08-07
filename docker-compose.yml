@@ -14,6 +14,11 @@ services:
       - "5432:5432"
     networks:
       - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   redis:
     image: redis:7
@@ -26,27 +31,30 @@ services:
     networks:
       - backend
 
-  backend:
-    build:
-      context: .
-    working_dir: /app
-    command: >
-      sh -c "python -m app.db.init_db && uvicorn app.main:app --host 0.0.0.0 --port 8000"
-    ports:
-      - "8000:8000"
-    environment:
-      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      - REDIS_URL=redis://:${REDISPASSWORD}@redis:6379/0
-      - CELERY_BROKER_URL=redis://:${REDISPASSWORD}@redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://:${REDISPASSWORD}@redis:6379/1
-      - PYTHONPATH=/app/app
-    depends_on:
-      - postgres
-      - redis
-    env_file:
-      - .env
-    networks:
-      - backend
+    backend:
+      build:
+        context: .
+      working_dir: /app
+      command: >
+        sh -c "python -m app.db.init_db && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+      ports:
+        - "8000:8000"
+      environment:
+        - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+        - REDIS_URL=redis://:${REDISPASSWORD}@redis:6379/0
+        - CELERY_BROKER_URL=redis://:${REDISPASSWORD}@redis:6379/0
+        - CELERY_RESULT_BACKEND=redis://:${REDISPASSWORD}@redis:6379/1
+        - PYTHONPATH=/app/app
+      depends_on:
+        postgres:
+          condition: service_healthy
+        redis:
+          condition: service_started
+      env_file:
+        - .env
+      networks:
+        - backend
+
 
   celery_worker:
     build:
@@ -61,8 +69,10 @@ services:
       - CELERY_RESULT_BACKEND=redis://:${REDISPASSWORD}@redis:6379/1
       - PYTHONPATH=/app/app
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
     env_file:
       - .env
     networks:
@@ -81,8 +91,10 @@ services:
       - CELERY_RESULT_BACKEND=redis://:${REDISPASSWORD}@redis:6379/1
       - PYTHONPATH=/app/app
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
     env_file:
       - .env
     networks:
