@@ -10,7 +10,7 @@ import httpx
 from auth.user_manager import get_user_manager,  UserManager
 
 
-templates = Jinja2Templates(directory="app/templates/auth")
+templates = Jinja2Templates(directory="app/templates")
 router = APIRouter(tags=["auth-ui"])
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -22,7 +22,7 @@ COOKIE_NAME = "binauth"
 
 @router.get("/ui/login/")
 async def login_get(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request})
+    return templates.TemplateResponse("auth/login.html", {"request": request})
 
 
 @router.post("/ui/login/")
