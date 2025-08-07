@@ -28,7 +28,9 @@ services:
 
   backend:
     build:
-      context: ./app
+      context: .
+    volumes:
+      - .:/app
     command: >
       sh -c "python -m db.init_db && uvicorn app.main:app --host 0.0.0.0 --port 8000"
     ports:
@@ -50,6 +52,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.worker
+    volumes:
+      - .:/app
     command: >
       sh -c "celery -A app.celery_app worker --loglevel=info"
     environment:
@@ -69,6 +73,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.beat
+    volumes:
+      - .:/app
     command: >
       sh -c "celery -A app.celery_app beat --loglevel=info"
     environment:
