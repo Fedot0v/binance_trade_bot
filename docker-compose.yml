@@ -45,6 +45,8 @@ services:
     depends_on:
       - postgres
       - redis
+    env_file:
+      - .env
     networks:
       - backend
 
@@ -62,6 +64,8 @@ services:
     depends_on:
       - postgres
       - redis
+    env_file:
+      - .env
     networks:
       - backend
 
@@ -79,6 +83,8 @@ services:
     depends_on:
       - postgres
       - redis
+    env_file:
+      - .env
     networks:
       - backend
 
