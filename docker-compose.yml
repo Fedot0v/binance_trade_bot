@@ -48,7 +48,7 @@ services:
 
   celery_worker:
     build:
-      context: ./app
+      context: .
       dockerfile: Dockerfile.worker
     command: >
       sh -c "celery -A app.celery_app worker --loglevel=info"
@@ -67,7 +67,7 @@ services:
 
   celery_beat:
     build:
-      context: ./app
+      context: .
       dockerfile: Dockerfile.beat
     command: >
       sh -c "celery -A app.celery_app beat --loglevel=info"
