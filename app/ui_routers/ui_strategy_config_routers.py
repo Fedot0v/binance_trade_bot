@@ -43,19 +43,21 @@ async def strategy_config_list(
     })
 
 
-# Форма создания стратегии
 @router.get("/strategy-config/create/")
-async def strategy_config_create_form(request: Request):
+async def strategy_config_create_form(
+    request: Request,
+    current_user: User = Depends(current_active_user)
+):
     symbols = [s.value for s in Symbols]
     intervals = [i.value for i in Intervals]
     return templates.TemplateResponse("strategy_config/strategy_config_create_form.html", {
         "request": request,
         "symbols": symbols,
         "intervals": intervals,
+        "current_user": current_user
     })
 
 
-# Обработка формы создания
 @router.post("/strategy-config/create/")
 async def create_strategy_config(
     request: Request,
@@ -78,26 +80,27 @@ async def create_strategy_config(
     return RedirectResponse("/strategy-config/list/", status_code=303)
 
 
-# Страница просмотра стратегии
 @router.get("/strategy-config/{config_id}")
 async def strategy_config_detail(
     request: Request,
     config_id: int,
-    service: StrategyConfigService = Depends(get_strategy_config_service)
+    service: StrategyConfigService = Depends(get_strategy_config_service),
+    current_user: User = Depends(current_active_user)
 ):
     config = await service.get_by_id(config_id)
     return templates.TemplateResponse("strategy_config/strategy_config_detail.html", {
         "request": request,
-        "config": config
+        "config": config,
+        "current_user": current_user
     })
 
 
-# Форма редактирования
 @router.get("/strategy-config/{config_id}/edit/")
 async def strategy_config_edit_form(
     request: Request,
     config_id: int,
-    service: StrategyConfigService = Depends(get_strategy_config_service)
+    service: StrategyConfigService = Depends(get_strategy_config_service),
+    current_user: User = Depends(current_active_user)
 ):
     config = await service.get_by_id(config_id)
     return templates.TemplateResponse("strategy_config/strategy_config_edit_form.html", {
@@ -106,14 +109,13 @@ async def strategy_config_edit_form(
     })
 
 
-# Обработка формы редактирования
 @router.post("/strategy-config/manual-create/")
 async def strategy_config_manual_create_post(
     request: Request,
     name: str = Form(...),
     description: str = Form(None),
     is_active: str = Form("false"),
-    parameters: str = Form(...),  # Это поле для JSON-строки
+    parameters: str = Form(...),
     service: StrategyConfigService = Depends(get_strategy_config_service),
     session=Depends(get_session),
 ):
