@@ -12,6 +12,7 @@ from dependencies.di_factories import (
 )
 from dependencies.user_dependencies import fastapi_users
 from services.apikeys_service import APIKeysService
+from services.strategy_log_service import StrategyLogService
 from models.user_model import User
 
 
@@ -67,7 +68,7 @@ async def close_deal(
     deal_service: DealService = Depends(get_deal_service),
     apikeys_service: APIKeysService = Depends(get_apikeys_service),
     binance_client=Depends(get_binance_factory),
-    log_service: APIKeysService = Depends(get_strategy_log_service)
+    log_service: StrategyLogService = Depends(get_strategy_log_service)
 
 ):
     await deal_service.close_deal_manually(deal_id, session, apikeys_service)
