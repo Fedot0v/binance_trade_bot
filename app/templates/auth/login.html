@@ -9,24 +9,24 @@
     <button type="submit">Войти</button>
 </form>
 <a href="/ui/register/">Нет аккаунта? Зарегистрироваться</a>
+
 <script>
 document.getElementById('loginForm').addEventListener('submit', async function(e) {
     e.preventDefault();
-    let form = e.target;
-    let data = new FormData(form);
-    let response = await fetch('/auth/jwt/login', {
-        method: 'POST',
-        body: data,
-        credentials: 'same-origin'
+    const formData = new FormData(e.target);
+
+    const response = await fetch("/auth/jwt/login", {
+        method: "POST",
+        body: formData,
+        credentials: "same-origin"
     });
-    if (response.status === 204) {
-        // Логин успешен, кука установилась
-        window.location.href = '/users/ui/me/';
+
+    if (response.status === 204 || response.redirected) {
+        window.location.href = "/";
+    } else if (response.status === 401 || response.status === 400) {
+        document.getElementById("error").innerText = "Неверный логин или пароль";
     } else {
-        // Ошибка: неверные данные
-        let text = await response.text();
-        let errorDiv = document.getElementById('error');
-        errorDiv.innerText = 'Неверный логин или пароль';
+        document.getElementById("error").innerText = "Ошибка входа";
     }
 });
 </script>

@@ -15,7 +15,7 @@ from services.apikeys_service import APIKeysService
 from models.user_model import User
 
 
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory="app/templates")
 router = APIRouter(tags=["Deals UI"])
 current_active_user = fastapi_users.current_user(active=True)
 

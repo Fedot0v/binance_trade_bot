@@ -1,39 +1,58 @@
 import os
 
-from fastapi import APIRouter, Request, Form, Response
+from fastapi import APIRouter, Request, Form, Response, status, Depends, HTTPException
 from fastapi_users.password import PasswordHelper
-from fastapi.responses import RedirectResponse
-from fastapi.templating import Jinja2Templates
-from fastapi import APIRouter, Request, Form
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from passlib.context import CryptContext
 import httpx
-from passlib.context import CryptContext
+
+from auth.user_manager import get_user_manager,  UserManager
 
 
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory="app/templates")
 router = APIRouter(tags=["auth-ui"])
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-password_helper = PasswordHelper()
 
 SECRET = os.environ.get("AUTH_SECRET", "SECRET")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 COOKIE_NAME = "binauth"
 
-templates = Jinja2Templates(directory="templates")
-router = APIRouter(tags=["auth-ui"])
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 
 @router.get("/ui/login/")
-async def login_page(request: Request):
-    return templates.TemplateResponse("auth/login.html", {"request": request, "error": None})
+async def login_get(request: Request):
+    return templates.TemplateResponse("auth/login.html", {"request": request})
+
+
+@router.post("/ui/login/")
+async def login_user(
+    request: Request,
+    user_manager: UserManager = Depends(get_user_manager),
+):
+    form = await request.form()
+    email = form.get("email")
+    password = form.get("password")
+
+    user = await user_manager.get_by_email(email)
+
+    if not user:
+        raise HTTPException(status_code=400, detail="User not found")
+
+    password_helper = PasswordHelper()
+    valid = password_helper.verify_and_update(password, user.hashed_password)
+
+    if not valid:
+        raise HTTPException(status_code=400, detail="Incorrect password")
+
+    response = RedirectResponse("/", status_code=302)
+    return response
+
 
 @router.get("/ui/register/")
 async def register_page(request: Request):
     return templates.TemplateResponse("auth/register.html", {"request": request, "error": None})
+
 
 @router.post("/ui/register/")
 async def register_post(
@@ -52,10 +71,10 @@ async def register_post(
         return templates.TemplateResponse(
             "auth/register.html", {"request": request, "error": "Ошибка регистрации"}
         )
-        
-        
+
+
 @router.get("/ui/logout/")
 async def logout(response: Response):
     resp = RedirectResponse(url="/ui/login/", status_code=303)
-    resp.delete_cookie("binauth", path="/")
+    resp.delete_cookie(COOKIE_NAME, path="/")
     return resp

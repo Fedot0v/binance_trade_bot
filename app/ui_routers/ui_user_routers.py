@@ -12,7 +12,7 @@ from dependencies.user_dependencies import fastapi_users
 from models.user_model import User
 
 
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory="app/templates")
 router = APIRouter(tags=["Users UI"])
 
 current_active_user = fastapi_users.current_user(active=True)

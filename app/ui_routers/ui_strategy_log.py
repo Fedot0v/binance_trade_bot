@@ -9,7 +9,7 @@ from dependencies.user_dependencies import fastapi_users
 
 
 router = APIRouter(prefix="/logs", tags=["logs"])
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory="app/templates")
 current_active_user = fastapi_users.current_user(active=True)
 
 
