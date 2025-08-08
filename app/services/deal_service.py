@@ -86,7 +86,12 @@ class DealService:
             f"Закрытие сделки: ID={deal_id},\
                 exit_price={exit_price}, pnl={pnl}"
         )
-        await self.repo.close_deal(deal_id, exit_price, pnl)
+        await self.repo.close_deal(
+            deal_id,
+            exit_price=exit_price,
+            pnl=pnl,
+            session=session
+        )
         if autocommit:
             await session.commit()
             print("Транзакция сохранена (commit после закрытия)")
