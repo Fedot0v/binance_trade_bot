@@ -110,7 +110,7 @@ class StrategyConfigService:
         try:
             for key, meta in REGISTRY.items():
                 await self.repo.upsert_by_name(
-                    name=key,  # канонический ключ кладём в name
+                    name=key,
                     description=meta.get("description", key),
                     is_active=bool(meta.get("is_active", True)),
                     parameters=meta.get("default_parameters", {}) or {}
