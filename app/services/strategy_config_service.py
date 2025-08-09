@@ -122,3 +122,21 @@ class StrategyConfigService:
                 status_code=500,
                 detail=f"Ошибка синхронизации стратегий: {str(e)}"
             )
+
+    async def seed_from_registry_if_missing(
+        self,
+        session,
+        autocommit: bool = True
+    ):
+        try:
+            for key, meta in REGISTRY.items():
+                await self.repo.ensure_exists_by_name(
+                    name=key,
+                    description=meta.get("description", key),
+                    is_active=bool(meta.get("is_active", True)),
+                    parameters=meta.get("default_parameters", {}) or {}
+                )
+            if autocommit:
+                await session.commit()
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Ошибка инициализации стратегий: {str(e)}")
