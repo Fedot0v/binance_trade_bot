@@ -98,7 +98,6 @@ def get_balance_service(
 
 
 def get_trade_service(
-    strategy_service: StrategyConfigService = Depends(get_strategy_service),
     deal_service: DealService = Depends(get_deal_service),
     marketdata_service: MarketDataService = Depends(get_marketdata_service),
     apikeys_service: APIKeysService = Depends(get_apikeys_service),
@@ -117,13 +116,12 @@ def get_trade_service(
     userbot_service: UserBotService = Depends(get_userbot_service)
 ):
     return TradeService(
-        strategy_service,
-        deal_service,
-        marketdata_service,
-        apikeys_service,
-        user_strategy_template_service,
-        log_service,
-        exchange_client_factory,
+        deal_service=deal_service,
+        marketdata_service=marketdata_service,
+        apikeys_service=apikeys_service,
+        user_strategy_template_service=user_strategy_template_service,
+        log_service=log_service,
+        exchange_client_factory=exchange_client_factory,
         balance_service=balance_service,
         order_service=order_service,
         strategy_config_service=strategy_config_service,

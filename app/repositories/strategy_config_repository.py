@@ -63,3 +63,62 @@ class StrategyConfigRepository:
             select(StrategyConfig.id)
         )
         return [row[0] for row in result.all()]
+    
+    async def get_by_name(self, name: str) -> StrategyConfig | None:
+        result = await self.db.execute(
+            select(StrategyConfig).where(StrategyConfig.name == name)
+        )
+        return result.scalar_one_or_none()
+
+    async def upsert_by_name(
+        self,
+        name: str,
+        description: str,
+        is_active: bool,
+        parameters: dict
+    ):
+        existing = await self.get_by_name(name)
+        if existing:
+            await self.db.execute(
+                update(StrategyConfig)
+                .where(StrategyConfig.id == existing.id)
+                .values(
+                    description=description,
+                    is_active=is_active,
+                    parameters=dict(parameters)
+                )
+            )
+            await self.db.flush()
+            await self.db.refresh(existing)
+            return existing
+        strategy = StrategyConfig(
+            name=name,
+            description=description,
+            is_active=is_active,
+            parameters=parameters
+        )
+        self.db.add(strategy)
+        await self.db.flush()
+        await self.db.refresh(strategy)
+        return strategy
+
+    async def ensure_exists_by_name(
+        self,
+        name: str,
+        description: str,
+        is_active: bool,
+        parameters: dict
+    ):
+        existing = await self.get_by_name(name)
+        if existing:
+            return existing
+        strategy = StrategyConfig(
+            name=name,
+            description=description,
+            is_active=is_active,
+            parameters=parameters
+        )
+        self.db.add(strategy)
+        await self.db.flush()
+        await self.db.refresh(strategy)
+        return strategy

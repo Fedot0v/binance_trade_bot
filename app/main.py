@@ -1,8 +1,13 @@
-from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
 import os
 
+from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from contextlib import asynccontextmanager
 
+
+from dependencies.db_dependencie import get_session
+from repositories.strategy_config_repository import StrategyConfigRepository
+from services.strategy_config_service import StrategyConfigService
 from routes import (
     apikeys_routers,
     deals_routers,
@@ -25,14 +30,26 @@ from ui_routers import (
 )
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    async for session in get_session():
+        try:
+            service = StrategyConfigService(StrategyConfigRepository(session))
+            await service.seed_from_registry_if_missing(session)
+        finally:
+            await session.close()
+        break
+    yield
+
+
 app = FastAPI(
     debug=True,
     title="Novichok++ Trading API",
     description="Backend for Novichok++ bot",
-    version="0.1.0"
+    version="0.1.0",
+    lifespan=lifespan
 )
 
-# Определяем путь к статическим файлам
 static_dir = os.path.join(os.path.dirname(__file__), "static")
 if os.path.exists(static_dir):
     app.mount("/static", StaticFiles(directory=static_dir), name="static")

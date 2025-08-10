@@ -20,10 +20,8 @@ from clients.binance_client import BinanceClientFactory
 
 
 def build_trade_service(session, *, testnet=True):
-    # Клиент биржи
     exchange_client_factory = BinanceClientFactory(testnet=testnet)
 
-    # Репозитории
     deal_repo = DealRepository(session)
     log_repo = StrategyLogRepository(session)
     template_repo = UserStrategyTemplateRepository(session)
@@ -31,7 +29,6 @@ def build_trade_service(session, *, testnet=True):
     apikeys_repo = APIKeysRepository(session)
     bot_repo = UserBotRepository(session)
 
-    # Сервисы
     strategy_service = StrategyConfigService(strategy_config_repo)
     deal_service = DealService(deal_repo)
     marketdata_service = MarketDataService(exchange_client_factory)
@@ -42,19 +39,17 @@ def build_trade_service(session, *, testnet=True):
     order_service = OrderService(exchange_client_factory)
     userbot_service = UserBotService(bot_repo)
 
-    # Обрати внимание на порядок аргументов!
     trade_service = TradeService(
-        base_strategy=strategy_service,                        # 1. strategy_service
-        deal_service=deal_service,                            # 2. deal_service
-        marketdata_service=marketdata_service,                      # 3. marketdata_service
-        apikeys_service=apikeys_service,                         # 4. apikeys_service
-        user_strategy_template_service=user_strategy_template_service,          # 5. user_strategy_template_service
-        log_service=log_service,                             # 6. log_service
-        exchange_client_factory=exchange_client_factory,                 # 7. exchange_client_factory
-        balance_service=balance_service,         # 8. balance_service (named)
-        order_service=order_service,             # 9. order_service (named)
-        strategy_config_service=strategy_service,  # 10. strategy_config_service (named, если он совпадает со strategy_service)
-        userbot_service=userbot_service           # 11. userbot_service (named)
+        deal_service=deal_service,                            
+        marketdata_service=marketdata_service,                      
+        apikeys_service=apikeys_service,                         
+        user_strategy_template_service=user_strategy_template_service,
+        log_service=log_service,
+        exchange_client_factory=exchange_client_factory,
+        balance_service=balance_service,
+        order_service=order_service,
+        strategy_config_service=strategy_service,
+        userbot_service=userbot_service
     )
     return trade_service
 

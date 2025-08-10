@@ -10,9 +10,9 @@ from services.deal_service import DealService
 from services.marketdata_service import MarketDataService
 from services.user_strategy_template_service import UserStrategyTemplateService
 from services.strategy_log_service import StrategyLogService
-from strategies.novichok_strategy import NovichokStrategy
 from schemas.user_strategy_template import UserStrategyTemplateRead
 from services.strategy_config_service import StrategyConfigService
+from strategies.strategy_factory import get_strategy_class_by_name
 from services.balance_service import BalanceService
 from services.order_service import OrderService
 from encryption.crypto import decrypt
@@ -25,7 +25,6 @@ from services.strategy_parameters import StrategyParameters
 class TradeService:
     def __init__(
         self,
-        base_strategy: BaseStrategy,
         deal_service: DealService,
         marketdata_service: MarketDataService,
         apikeys_service: APIKeysService,
@@ -37,7 +36,6 @@ class TradeService:
         order_service: OrderService,
         userbot_service: UserBotService
     ):
-        self.base_strategy = base_strategy
         self.deal_service = deal_service
         self.marketdata_service = marketdata_service
         self.apikeys_service = apikeys_service
@@ -205,7 +203,7 @@ class TradeService:
     def _generate_signal(self, strategy_config, df):
         print(f"Генерация сигнала по стратегии: {strategy_config.name}")
         params = StrategyParameters(strategy_config.parameters)
-        strat = NovichokStrategy(params)
+        strat = get_strategy_class_by_name(strategy_config.name, params)
         signal = strat.generate_signal(df)
         print(f"Сгенерированный сигнал: {signal}")
         return signal
@@ -219,10 +217,14 @@ class TradeService:
         balance = balance_data["available"]
         print(f"Доступный баланс по API: {balance}")
         params = StrategyParameters(template.parameters)
-        strategy = NovichokStrategy(params)
+
+        strategy_config = await self.strategy_config_service.get_by_id(
+            template.strategy_config_id
+        )
+        strategy = get_strategy_class_by_name(strategy_config.name, params)
+
         size = strategy.calculate_position_size(balance)
         price = df['close'].iloc[-1]
-        print(f"Финальный размер позиции в долларах: {size}, текущая цена: {price}")
         quantity = round(size / price, 3)
         print(f"Рассчитано: quantity={quantity} (size={size}/price={price})")
         return quantity, price

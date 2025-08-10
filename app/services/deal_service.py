@@ -86,7 +86,12 @@ class DealService:
             f"Закрытие сделки: ID={deal_id},\
                 exit_price={exit_price}, pnl={pnl}"
         )
-        await self.repo.close_deal(deal_id, exit_price, pnl)
+        await self.repo.close_deal(
+            deal_id,
+            exit_price=exit_price,
+            pnl=pnl,
+            session=session
+        )
         if autocommit:
             await session.commit()
             print("Транзакция сохранена (commit после закрытия)")
@@ -274,8 +279,13 @@ class DealService:
         stop_loss_price,
         strategy_name
     ):
+        symbol_str = (
+            deal.symbol.value
+            if hasattr(deal.symbol, "value") 
+            else deal.symbol
+        )
         positions = await client.futures_position_information(
-            symbol=deal.symbol
+            symbol=symbol_str
         )
         position_amt = 0.0
         for pos in positions:
@@ -288,7 +298,7 @@ class DealService:
         deal_is_long = deal.side == 'BUY'
         position_is_long = position_amt > 0
         position_is_short = position_amt < 0
-        mark_price = await self._get_current_mark_price(client, deal.symbol)
+        mark_price = await self._get_current_mark_price(client, symbol_str)
         exit_price = mark_price
         pnl = (
             (exit_price - deal.entry_price) * deal.size if deal_is_long
@@ -327,7 +337,7 @@ class DealService:
 
         close_side = 'SELL' if deal_is_long else 'BUY'
         closing_order = await client.futures_create_order(
-            symbol=deal.symbol,
+            symbol=symbol_str,
             side=close_side,
             type='MARKET',
             quantity=abs(position_amt),
