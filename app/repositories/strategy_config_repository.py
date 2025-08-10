@@ -101,3 +101,24 @@ class StrategyConfigRepository:
         await self.db.flush()
         await self.db.refresh(strategy)
         return strategy
+
+    async def ensure_exists_by_name(
+        self,
+        name: str,
+        description: str,
+        is_active: bool,
+        parameters: dict
+    ):
+        existing = await self.get_by_name(name)
+        if existing:
+            return existing
+        strategy = StrategyConfig(
+            name=name,
+            description=description,
+            is_active=is_active,
+            parameters=parameters
+        )
+        self.db.add(strategy)
+        await self.db.flush()
+        await self.db.refresh(strategy)
+        return strategy
