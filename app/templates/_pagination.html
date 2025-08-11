@@ -1,4 +1,7 @@
-{% macro pager(page, pages, per_page) %}
+{% macro pager(page=1, pages=1, per_page=20) %}
+{% set p   = (page    | default(1, true)  | int) %}
+{% set pg  = (pages   | default(1, true)  | int) %}
+{% set per = (per_page| default(20, true) | int) %}
 <nav class="pagination">
   <ul style="display:flex; gap:8px; list-style:none; padding:0; align-items:center;">
     {% if page > 1 %}
