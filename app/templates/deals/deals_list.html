@@ -1,9 +1,12 @@
 {% extends "base.html" %}
+{% from "_pagination.html" import pager %}
 {% block title %}Список сделок{% endblock %}
 {% block content %}
 <div class="deals-list">
     <h2>Список сделок</h2>
+
     <table class="data-table">
+        <thead>
         <tr>
             <th>ID</th>
             <th>Символ</th>
@@ -13,7 +16,9 @@
             <th>Статус</th>
             <th></th>
         </tr>
-        {% for deal in deals %}
+        </thead>
+        <tbody>
+        {% for deal in items %}
         <tr>
             <td>{{ deal.id }}</td>
             <td>{{ deal.symbol }}</td>
@@ -32,7 +37,23 @@
             </td>
         </tr>
         {% endfor %}
+        </tbody>
     </table>
-    <a href="/deals/ui/create/" class="button">Открыть новую сделку</a>
+
+    {{ pager(page, pages, per_page) }}
+
+    <div style="margin-top:10px;">
+        На странице:
+        {% for n in [10,20,50,100] %}
+          {% if per_page == n %}
+            <strong>{{ n }}</strong>
+          {% else %}
+            <a href="?page=1&per_page={{ n }}">{{ n }}</a>
+          {% endif %}
+          {% if not loop.last %} | {% endif %}
+        {% endfor %}
+    </div>
+
+    <a href="/deals/ui/create/" class="button" style="margin-top:16px; display:inline-block;">Открыть новую сделку</a>
 </div>
 {% endblock %}

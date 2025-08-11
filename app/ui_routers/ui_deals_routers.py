@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Request, Depends
+import math
+
+from fastapi import APIRouter, Request, Depends, Query
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import RedirectResponse
 from services.deal_service import DealService
@@ -24,14 +26,21 @@ current_active_user = fastapi_users.current_user(active=True)
 @router.get("/deals/ui/")
 async def deals_list(
     request: Request,
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
     service: DealService = Depends(get_deal_service),
-    user: User = Depends(current_active_user)
+    user: User = Depends(current_active_user),
 ):
-    deals = await service.get_all()
+    items, total = await service.list_paginated(page=page, per_page=per_page)
+    pages = max(1, math.ceil(total / per_page))
     return templates.TemplateResponse("deals/deals_list.html", {
         "request": request,
-        "deals": deals,
-        "current_user": user
+        "items": items,
+        "total": total,
+        "page": page,
+        "per_page": per_page,
+        "pages": pages,
+        "current_user": user,
     })
 
 
