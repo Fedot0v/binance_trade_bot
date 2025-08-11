@@ -47,16 +47,17 @@
 
     <div style="margin-top:10px;">
     На странице:
+    {% set pp = per_page or 20 %}
     {% for n in [10,20,50,100] %}
-        {% if (per_page or 20) == n %}
+        {% if pp == n %}
         <strong>{{ n }}</strong>
         {% else %}
         <a href="?page=1&per_page={{ n }}">{{ n }}</a>
         {% endif %}
         {% if not loop.last %} | {% endif %}
     {% endfor %}
-      </div>
-    {% endif %}
+    </div>
+
 
     <a href="/deals/ui/create/" class="button" style="margin-top:16px; display:inline-block;">Открыть новую сделку</a>
 </div>
