@@ -43,18 +43,18 @@
         </tbody>
     </table>
 
-    {% if page is defined and pages is defined and per_page is defined %}
-      {{ pager(page, pages, per_page) }}
-      <div style="margin-top:10px;">
-        На странице:
-        {% for n in [10,20,50,100] %}
-          {% if per_page == n %}
-            <strong>{{ n }}</strong>
-          {% else %}
-            <a href="?page=1&per_page={{ n }}">{{ n }}</a>
-          {% endif %}
-          {% if not loop.last %} | {% endif %}
-        {% endfor %}
+    {{ pager(page=page or 1, pages=pages or 1, per_page=per_page or 20) }}
+
+    <div style="margin-top:10px;">
+    На странице:
+    {% for n in [10,20,50,100] %}
+        {% if (per_page or 20) == n %}
+        <strong>{{ n }}</strong>
+        {% else %}
+        <a href="?page=1&per_page={{ n }}">{{ n }}</a>
+        {% endif %}
+        {% if not loop.last %} | {% endif %}
+    {% endfor %}
       </div>
     {% endif %}
 
