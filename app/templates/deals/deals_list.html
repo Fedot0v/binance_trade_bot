@@ -2,6 +2,9 @@
 {% from "_pagination.html" import pager %}
 {% block title %}Список сделок{% endblock %}
 {% block content %}
+
+{% set rows = items if items is defined else deals %}
+
 <div class="deals-list">
     <h2>Список сделок</h2>
 
@@ -18,7 +21,7 @@
         </tr>
         </thead>
         <tbody>
-        {% for deal in items %}
+        {% for deal in rows %}
         <tr>
             <td>{{ deal.id }}</td>
             <td>{{ deal.symbol }}</td>
@@ -40,9 +43,9 @@
         </tbody>
     </table>
 
-    {{ pager(page=page or 1, pages=pages or 1, per_page=per_page or 20) }}
-
-    <div style="margin-top:10px;">
+    {% if page is defined and pages is defined and per_page is defined %}
+      {{ pager(page, pages, per_page) }}
+      <div style="margin-top:10px;">
         На странице:
         {% for n in [10,20,50,100] %}
           {% if per_page == n %}
@@ -52,7 +55,8 @@
           {% endif %}
           {% if not loop.last %} | {% endif %}
         {% endfor %}
-    </div>
+      </div>
+    {% endif %}
 
     <a href="/deals/ui/create/" class="button" style="margin-top:16px; display:inline-block;">Открыть новую сделку</a>
 </div>

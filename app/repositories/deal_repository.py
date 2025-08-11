@@ -1,5 +1,6 @@
 from uuid import UUID
 from datetime import datetime
+from typing import Optional
 
 from sqlalchemy import select, update, desc, delete, func
 from sqlalchemy.orm import joinedload
@@ -20,7 +21,12 @@ class DealRepository(BaseRepository):
         result = await self.db.execute(select(Deal))
         return result.scalars().all()
 
-    async def list_paginated(self, offset: int, limit: int, user_id: UUID):
+    async def list_paginated(
+        self,
+        offset: int,
+        limit: int,
+        user_id: Optional[UUID] = None
+    ):
         stmt = (
             select(Deal)
             .where(Deal.user_id == user_id)
@@ -31,7 +37,11 @@ class DealRepository(BaseRepository):
         result = await self.db.execute(stmt)
         items = result.scalars().all()
 
-        total_stmt = select(func.count()).select_from(Deal)
+        total_stmt = (
+            select(func.count())
+            .select_from(Deal)
+            .where(Deal.user_id == user_id)
+        )
         total = (await self.db.execute(total_stmt)).scalar_one()
 
         return items, total
