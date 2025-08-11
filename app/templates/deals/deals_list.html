@@ -3,8 +3,6 @@
 {% block title %}Список сделок{% endblock %}
 {% block content %}
 
-{% set rows = items if items is defined else deals %}
-
 <div class="deals-list">
     <h2>Список сделок</h2>
 
@@ -21,7 +19,7 @@
         </tr>
         </thead>
         <tbody>
-        {% for deal in rows %}
+        {% for deal in items %}
         <tr>
             <td>{{ deal.id }}</td>
             <td>{{ deal.symbol }}</td>
