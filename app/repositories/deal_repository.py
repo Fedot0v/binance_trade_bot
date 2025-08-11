@@ -27,21 +27,16 @@ class DealRepository(BaseRepository):
         limit: int,
         user_id: Optional[UUID] = None
     ):
-        stmt = (
-            select(Deal)
-            .where(Deal.user_id == user_id)
-            .order_by(desc(Deal.id))
-            .offset(offset)
-            .limit(limit)
-        )
-        result = await self.db.execute(stmt)
-        items = result.scalars().all()
+        stmt = select(Deal)
+        total_stmt = select(func.count()).select_from(Deal)
 
-        total_stmt = (
-            select(func.count())
-            .select_from(Deal)
-            .where(Deal.user_id == user_id)
-        )
+        if user_id is not None:
+            stmt = stmt.where(Deal.user_id == user_id)
+            total_stmt = total_stmt.where(Deal.user_id == user_id)
+
+        stmt = stmt.order_by(desc(Deal.id)).offset(offset).limit(limit)
+
+        items = (await self.db.execute(stmt)).scalars().all()
         total = (await self.db.execute(total_stmt)).scalar_one()
 
         return items, total

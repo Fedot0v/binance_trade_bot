@@ -37,6 +37,7 @@ async def deals_list(
         user_id=user.id
     )
     pages = max(1, math.ceil(total / per_page))
+    print("DEBUG page=", page, "per_page=", per_page, "items=", len(items), "total=", total, "user_id=", getattr(user, "id", None))
     return templates.TemplateResponse("deals/deals_list.html", {
         "request": request,
         "items": items,
