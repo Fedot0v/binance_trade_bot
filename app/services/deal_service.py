@@ -1,4 +1,5 @@
 from uuid import UUID
+from typing import Optional
 
 from fastapi import HTTPException, Depends
 
@@ -481,7 +482,12 @@ class DealService:
         finally:
             await self.binance_client.close(client)
 
-    async def list_paginated(self, page: int, per_page: int, user_id: UUID):
+    async def list_paginated(
+        self,
+        page: int,
+        per_page: int,
+        user_id: Optional[UUID] = None
+    ):
         offset = (page - 1) * per_page
         items, total = await self.repo.list_paginated(
             offset=offset,
