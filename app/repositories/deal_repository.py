@@ -20,6 +20,23 @@ class DealRepository(BaseRepository):
         result = await self.db.execute(select(Deal))
         return result.scalars().all()
 
+    async def list_paginated(self, offset: int, limit: int):
+        # сами записи
+        stmt = (
+            select(Deal)
+            .order_by(desc(Deal.id))
+            .offset(offset)
+            .limit(limit)
+        )
+        result = await self.db.execute(stmt)
+        items = result.scalars().all()
+
+        # всего записей
+        total_stmt = select(func.count()).select_from(Deal)
+        total = (await self.db.execute(total_stmt)).scalar_one()
+
+        return items, total
+
     async def get_open_deals_for_user(self, user_id: int, symbol):
         result = await self.db.execute(
             select(Deal)
@@ -32,7 +49,7 @@ class DealRepository(BaseRepository):
         result = await self.db.execute(
             select(Deal)
             .where(Deal.user_id == user_id)
-            .order_by(desc(Deal.id))  # или по дате, если есть
+            .order_by(desc(Deal.id))
             .limit(1)
         )
         return result.scalar_one_or_none()
