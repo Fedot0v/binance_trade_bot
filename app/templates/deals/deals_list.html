@@ -40,7 +40,7 @@
         </tbody>
     </table>
 
-    {{ pager(page, pages, per_page) }}
+    {{ pager(page=page or 1, pages=pages or 1, per_page=per_page or 20) }}
 
     <div style="margin-top:10px;">
         На странице:
