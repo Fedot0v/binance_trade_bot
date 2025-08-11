@@ -2,21 +2,22 @@
 {% set p   = (page    | default(1, true)  | int) %}
 {% set pg  = (pages   | default(1, true)  | int) %}
 {% set per = (per_page| default(20, true) | int) %}
-<nav class="pagination">
+
+<nav class="pagination" style="margin-top:12px;">
   <ul style="display:flex; gap:8px; list-style:none; padding:0; align-items:center;">
-    {% if page > 1 %}
-      <li><a href="?page=1&per_page={{ per_page }}">« Первая</a></li>
-      <li><a href="?page={{ page - 1 }}&per_page={{ per_page }}">‹ Назад</a></li>
+    {% if p > 1 %}
+      <li><a href="?page=1&per_page={{ per }}">« Первая</a></li>
+      <li><a href="?page={{ p - 1 }}&per_page={{ per }}">‹ Назад</a></li>
     {% else %}
       <li style="opacity:.5">« Первая</li>
       <li style="opacity:.5">‹ Назад</li>
     {% endif %}
 
-    <li>Стр. {{ page }} из {{ pages }}</li>
+    <li>Стр. {{ p }} из {{ pg }}</li>
 
-    {% if page < pages %}
-      <li><a href="?page={{ page + 1 }}&per_page={{ per_page }}">Вперёд ›</a></li>
-      <li><a href="?page={{ pages }}&per_page={{ per_page }}">Последняя »</a></li>
+    {% if p < pg %}
+      <li><a href="?page={{ p + 1 }}&per_page={{ per }}">Вперёд ›</a></li>
+      <li><a href="?page={{ pg }}&per_page={{ per }}">Последняя »</a></li>
     {% else %}
       <li style="opacity:.5">Вперёд ›</li>
       <li style="opacity:.5">Последняя »</li>
