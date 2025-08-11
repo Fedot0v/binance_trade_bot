@@ -20,10 +20,10 @@ class DealRepository(BaseRepository):
         result = await self.db.execute(select(Deal))
         return result.scalars().all()
 
-    async def list_paginated(self, offset: int, limit: int):
-        # сами записи
+    async def list_paginated(self, offset: int, limit: int, user_id: UUID):
         stmt = (
             select(Deal)
+            .where(Deal.user_id == user_id)
             .order_by(desc(Deal.id))
             .offset(offset)
             .limit(limit)

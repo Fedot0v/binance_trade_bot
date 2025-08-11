@@ -31,7 +31,11 @@ async def deals_list(
     service: DealService = Depends(get_deal_service),
     user: User = Depends(current_active_user),
 ):
-    items, total = await service.list_paginated(page=page, per_page=per_page)
+    items, total = await service.list_paginated(
+        page=page,
+        per_page=per_page,
+        user_id=user.id
+    )
     pages = max(1, math.ceil(total / per_page))
     return templates.TemplateResponse("deals/deals_list.html", {
         "request": request,
