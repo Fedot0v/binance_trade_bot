@@ -1,0 +1,23 @@
+{% macro pager(page, pages, per_page) %}
+<nav class="pagination">
+  <ul style="display:flex; gap:8px; list-style:none; padding:0; align-items:center;">
+    {% if page > 1 %}
+      <li><a href="?page=1&per_page={{ per_page }}">« Первая</a></li>
+      <li><a href="?page={{ page - 1 }}&per_page={{ per_page }}">‹ Назад</a></li>
+    {% else %}
+      <li style="opacity:.5">« Первая</li>
+      <li style="opacity:.5">‹ Назад</li>
+    {% endif %}
+
+    <li>Стр. {{ page }} из {{ pages }}</li>
+
+    {% if page < pages %}
+      <li><a href="?page={{ page + 1 }}&per_page={{ per_page }}">Вперёд ›</a></li>
+      <li><a href="?page={{ pages }}&per_page={{ per_page }}">Последняя »</a></li>
+    {% else %}
+      <li style="opacity:.5">Вперёд ›</li>
+      <li style="opacity:.5">Последняя »</li>
+    {% endif %}
+  </ul>
+</nav>
+{% endmacro %}
