@@ -9,9 +9,7 @@
             <th>ID</th>
             <th>Название</th>
             <th>Стратегия</th>
-            <th>Депозит</th>
             <th>Плечо</th>
-            <th>Риск, %</th>
             <th>Описание</th>
             <th></th>
         </tr>
@@ -20,9 +18,7 @@
             <td>{{ t.id }}</td>
             <td>{{ t.template_name }}</td>
             <td>{{ t.strategy_config_id }}</td>
-            <td>{{ t.deposit }}</td>
             <td>{{ t.leverage }}</td>
-            <td>{{ t.entry_pct }}</td>
             <td>{{ t.description or "" }}</td>
             <td>
                 <a href="/strategy-templates/{{ t.id }}" class="button-small">Подробнее</a>

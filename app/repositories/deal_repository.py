@@ -1,7 +1,7 @@
 from uuid import UUID
 from datetime import datetime
 
-from sqlalchemy import select, update, desc, delete
+from sqlalchemy import select, update, desc, delete, func
 from sqlalchemy.orm import joinedload
 
 from repositories.base_repository import BaseRepository
@@ -31,7 +31,6 @@ class DealRepository(BaseRepository):
         result = await self.db.execute(stmt)
         items = result.scalars().all()
 
-        # всего записей
         total_stmt = select(func.count()).select_from(Deal)
         total = (await self.db.execute(total_stmt)).scalar_one()
 
@@ -65,7 +64,11 @@ class DealRepository(BaseRepository):
     async def get_open_deal_by_symbol(self, user_id: UUID, symbol: str):
         result = await self.db.execute(
             select(Deal)
-            .where(Deal.status == 'open', Deal.user_id == user_id, Deal.symbol == symbol)
+            .where(
+                Deal.status == 'open',
+                Deal.user_id == user_id,
+                Deal.symbol == symbol
+            )
         )
         return result.scalar_one_or_none()
 
