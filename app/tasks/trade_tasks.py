@@ -17,7 +17,7 @@ def run_active_bots():
 
     async def main():
         DATABASE_URL = os.environ.get("DATABASE_URL")
-        engine = create_async_engine(DATABASE_URL, echo=True)
+        engine = create_async_engine(DATABASE_URL, echo=False)
         async_session = sessionmaker(
             bind=engine,
             class_=AsyncSession,
@@ -41,6 +41,7 @@ def run_active_bots():
         await engine.dispose()
 
     asyncio.run(main())
+
 
 @celery_app.task
 def periodic_trade_cycle(bot_id, user_id, symbol):
@@ -67,13 +68,13 @@ def periodic_trade_cycle(bot_id, user_id, symbol):
             expire_on_commit=False
         )
         async with async_session() as session:
-            trade_service = build_trade_service(session, testnet=True)
+            trade_service = build_trade_service(session, testnet=False)
             await trade_service.run_trading_cycle(
                 bot_id=bot_id_converted,
                 user_id=user_id_converted,
                 symbol=symbol,
                 session=session,
-                test_mode=True,
+                test_mode=False,
             )
         await engine.dispose()
 
