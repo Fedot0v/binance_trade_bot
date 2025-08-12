@@ -53,15 +53,12 @@ class StrategyLogService:
                 detail=f"Ошибка при получении последних логов стратегии: {str(e)}"
             )
 
-    async def add_log_user(self, user_id, message, session=None):
-        pass
-        
-    async def get_logs_by_user(self, user_id) -> list[StrategyLogRead]:
-        try:
-            records = await self.repo.get_by_user(user_id)
-            return [StrategyLogRead.model_validate(r) for r in records]
-        except Exception as e:
-            raise HTTPException(
-                status_code=500,
-                detail=f"Ошибка при получении логов стратегии для пользователя с ID {user_id}: {str(e)}"
-            )
+    async def get_logs_by_user(
+        self,
+        user_id,
+        page,
+        per_page
+    ) -> list[StrategyLogRead]:
+        offset = (page - 1) * per_page
+        items, total = await self.repo.get_by_user(user_id, offset, per_page)
+        return [StrategyLogRead.model_validate(r) for r in records], total

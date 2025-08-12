@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, Request
+import math
+
+from fastapi import APIRouter, Depends, Request, Query
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,16 +19,26 @@ current_active_user = fastapi_users.current_user(active=True)
 async def show_logs_by_user(
     request: Request,
     session: AsyncSession = Depends(get_session),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
     log_service: StrategyLogService = Depends(get_strategy_log_service),
     current_user=Depends(current_active_user)
 ):
-    logs = await log_service.get_logs_by_user(current_user.id)
+    items, total = await log_service.get_logs_by_user(
+        current_user.id,
+        page,
+        per_page
+    )
+    pages = max(1, math.ceil(total / per_page))
     return templates.TemplateResponse(
         "logs/logs.html",
         {
             "request": request,
-            "logs": logs,
-            "deal_id": None,
+            "items": items,
+            "total": total,
+            "page": page,
+            "per_page": per_page,
+            "pages": pages,
             "current_user": current_user}
     )
 

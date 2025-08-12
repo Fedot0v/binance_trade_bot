@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import select, func
 
 from models.trade_models import StrategyLog
 
@@ -43,9 +43,17 @@ class StrategyLogRepository:
             select(StrategyLog).order_by(StrategyLog.id.desc()).limit(limit)
         )
         return result.scalars().all()
-    
-    async def get_by_user(self, user_id):
-        result = await self.db.execute(
-            select(StrategyLog).where(StrategyLog.user_id == user_id)
+
+    async def get_by_user(self, user_id, offset=0, limit=100):
+        stmt = select(StrategyLog).where(StrategyLog.user_id == user_id)
+        total_stmt = (
+            select(func.count())
+            .select_from(StrategyLog)
+            .where(StrategyLog.user_id == user_id)
         )
-        return result.scalars().all()
+        stmt = stmt.order_by(StrategyLog.id.desc()).offset(offset).limit(limit)
+        
+        items = (await self.db.execute(stmt)).scalars().all()
+        total = (await self.db.execute(total_stmt)).scalar_one()
+
+        return items, total
