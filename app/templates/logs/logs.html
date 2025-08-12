@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-
+{% from "_pagination.html" import pager %}
 {% block title %}Логи стратегий{% endblock %}
 
 {% block content %}
@@ -33,6 +33,20 @@
         {% endif %}
     </table>
 </div>
+{{ pager(page=page or 1, pages=pages or 1, per_page=per_page or 20) }}
+
+    <div style="margin-top:10px;">
+    На странице:
+    {% set pp = per_page or 20 %}
+    {% for n in [10,20,50,100] %}
+        {% if pp == n %}
+        <strong>{{ n }}</strong>
+        {% else %}
+        <a href="?page=1&per_page={{ n }}">{{ n }}</a>
+        {% endif %}
+        {% if not loop.last %} | {% endif %}
+    {% endfor %}
+    </div>
 <br>
 {% if deal_id %}
   <a href="/logs/" class="button-secondary">Показать все логи</a>
