@@ -61,4 +61,4 @@ class StrategyLogService:
     ) -> list[StrategyLogRead]:
         offset = (page - 1) * per_page
         items, total = await self.repo.get_by_user(user_id, offset, per_page)
-        return [StrategyLogRead.model_validate(r) for r in records], total
+        return [StrategyLogRead.model_validate(r) for r in items], total
