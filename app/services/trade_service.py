@@ -90,10 +90,6 @@ class TradeService:
             print(f"Сигнал стратегии: {signal}")
 
             if signal == 'hold':
-                await self.log_service.add_log_user(
-                    user_id,
-                    "Сигнал hold — пропуск"
-                )
                 print("Сигнал hold — пропуск, торговля не совершается")
                 return
 
