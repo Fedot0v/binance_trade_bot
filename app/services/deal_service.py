@@ -127,7 +127,7 @@ class DealService:
                 создаём бинанс-клиент"
         )
         client = await self.binance_client.create(
-            keys.api_key_encrypted, keys.api_secret_encrypted, testnet=True
+            keys.api_key_encrypted, keys.api_secret_encrypted, testnet=False
         )
         try:
             await self._sync_deal_with_binance(deal, session, client)
@@ -386,7 +386,7 @@ class DealService:
             )
 
         client = await self.binance_client.create(
-            keys.api_key_encrypted, keys.api_secret_encrypted, testnet=True
+            keys.api_key_encrypted, keys.api_secret_encrypted, testnet=False
         )
         try:
             positions = await client.futures_position_information(
