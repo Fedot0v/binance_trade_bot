@@ -6,7 +6,7 @@
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen.svg)](https://github.com/your-repo)
 
-🚀 **Production-ready automated cryptocurrency trading bot** with advanced algorithmic strategies, real-time market analysis, and comprehensive risk management for Binance exchange.
+🚀 **Production-ready automated cryptocurrency trading bot** 
 
 ## 🎯 What This Bot Does
 
@@ -14,15 +14,14 @@ This is a sophisticated **automated trading system** that:
 
 ### 🤖 **Automated Trading**
 - **24/7 Market Monitoring**: Continuously analyzes cryptocurrency markets using real-time data from Binance
-- **Intelligent Signal Generation**: Uses advanced technical analysis to identify profitable trading opportunities
+- **Signal Generation**: Uses technical analysis to identify profitable trading opportunities
 - **Automatic Trade Execution**: Places buy/sell orders automatically based on strategy signals
 - **Risk Management**: Implements stop-loss, take-profit, and position sizing to protect your capital
 
 ### 📊 **Advanced Analytics**
 - **Technical Analysis**: EMA crossovers, trend detection, momentum indicators
 - **Market Sentiment**: Analyzes volume, price action, and market structure
-- **Performance Tracking**: Real-time P&L monitoring and trade history
-- **Backtesting Engine**: Test strategies on historical data before live trading
+- **Performance Tracking**: Real-time P&L monitoring and trade history  
 
 ### 🛡️ **Risk Management**
 - **Position Sizing**: Calculates optimal position size based on account balance and risk tolerance
@@ -36,47 +35,7 @@ This is a sophisticated **automated trading system** that:
 - **Trade History**: Detailed logs of all executed trades and performance
 - **API Management**: Secure storage and management of Binance API credentials
 
-## 🏗️ System Architecture
-
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Web Frontend  │    │   FastAPI Backend│    │   Binance API   │
-│   (Dashboard)   │◄──►│   (Trading Logic)│◄──►│   (Market Data) │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-         │                       │                       │
-         │              ┌─────────────────┐              │
-         │              │   PostgreSQL    │              │
-         │              │   (Database)    │              │
-         │              └─────────────────┘              │
-         │                       │                       │
-         │              ┌─────────────────┐              │
-         └──────────────►│     Redis       │◄─────────────┘
-                        │   (Cache/Queue) │
-                        └─────────────────┘
-```
-
 ### 🔧 **Core Components**
-
-#### **Backend Services**
-- **FastAPI Application**: High-performance async web framework
-- **Celery Workers**: Background task processing for trade execution
-- **Celery Beat**: Scheduled tasks for market monitoring
-- **Alembic**: Database migrations and schema management
-
-#### **Data Layer**
-- **PostgreSQL**: Primary database for user data, trades, and configurations
-- **Redis**: Caching layer and message broker for Celery
-- **SQLAlchemy**: ORM for database operations
-
-#### **Trading Engine**
-- **Strategy Framework**: Modular system for implementing trading algorithms
-- **Signal Processor**: Analyzes market data and generates trading signals
-- **Order Manager**: Handles order placement, modification, and cancellation
-- **Risk Calculator**: Manages position sizing and risk parameters
-
-## 🛠️ Technology Stack Deep Dive
-
-### **Backend Framework**
 - **FastAPI 0.115+**: Modern, fast web framework with automatic API documentation
 - **Pydantic**: Data validation and serialization
 - **SQLAlchemy 2.0+**: Modern async ORM with type hints
@@ -96,7 +55,7 @@ This is a sophisticated **automated trading system** that:
 ### **Task Processing**
 - **Celery**: Distributed task queue for background processing
 - **Redis**: Message broker for Celery
-- **django-celery-beat**: Database-backed scheduler
+- **celery-beat**: Database-backed scheduler
 
 ### **Security & Authentication**
 - **FastAPI Users**: User management and authentication
@@ -107,8 +66,6 @@ This is a sophisticated **automated trading system** that:
 ### **Frontend & UI**
 - **Jinja2**: Template engine for server-side rendering
 - **Bootstrap/CSS**: Responsive web interface
-- **JavaScript**: Interactive dashboard components
-- **Chart.js**: Real-time trading charts
 
 ### **Testing & Quality**
 - **pytest**: Testing framework
@@ -126,17 +83,14 @@ This is a sophisticated **automated trading system** that:
 
 ### **Novichok++ Strategy** 🎯
 
-The flagship trading algorithm that combines multiple technical indicators:
-
 #### **Core Logic**
 ```python
-# Strategy combines EMA crossover with trend analysis
 if fast_ema > slow_ema and trend_strength > threshold:
     return "long"  # Buy signal
 elif fast_ema < slow_ema and trend_strength > threshold:
     return "short"  # Sell signal
 else:
-    return "neutral"  # No position
+    return "hold"  # No position
 ```
 
 #### **Key Features**
@@ -156,38 +110,6 @@ else:
 - **Risk Settings**: Modify position size, stop-loss, take-profit
 - **Time Filters**: Set trading hours and market conditions
 - **Pair Selection**: Choose specific trading pairs
-
-## 🔧 API Endpoints & Integration
-
-### **REST API**
-```bash
-# Authentication
-POST /auth/register          # Create new account
-POST /auth/login            # User authentication
-POST /auth/logout           # End session
-
-# Trading Operations
-GET  /api/deals             # Get trade history
-POST /api/trade/start       # Start automated trading
-POST /api/trade/stop        # Stop trading
-GET  /api/strategies        # List available strategies
-
-# Configuration
-GET  /api/strategy-config   # Get current settings
-POST /api/strategy-config   # Update strategy parameters
-GET  /api/apikeys           # List API keys
-POST /api/apikeys           # Add new API key
-
-# Monitoring
-GET  /health                # System health check
-GET  /api/performance       # Trading performance metrics
-```
-
-### **WebSocket Support**
-- Real-time price updates
-- Live trade notifications
-- Strategy signal alerts
-- Performance monitoring
 
 ## 📈 Performance & Monitoring
 
@@ -284,17 +206,13 @@ TEST_MODE=true  # Use testnet instead of mainnet
 ### **Strategy Configuration**
 ```json
 {
-  "strategy": "novichok_plus",
   "parameters": {
     "ema_fast": 7,
     "ema_slow": 21,
     "trend_threshold": 0.001,
-    "risk_pct": 0.10,
     "stop_loss_pct": 0.015,
-    "leverage": 10
-  },
-  "trading_pairs": ["BTCUSDT", "ETHUSDT"],
-  "timeframe": "1m"
+    "deposit_prct": 10
+  }
 }
 ```
 
@@ -340,98 +258,8 @@ pytest app/tests/test_trading.py
 - **Access Control**: Role-based permissions and authentication
 - **Audit Logging**: Complete access and action logging
 
-### **Trading Security**
-- **Risk Limits**: Maximum position size and loss limits
-- **Order Validation**: Pre-trade risk checks
-- **Emergency Stop**: Immediate trading halt capability
-- **API Rate Limiting**: Prevents API abuse
-
-## 📊 Performance Benchmarks
-
-### **System Performance**
-- **Response Time**: < 100ms for API calls
-- **Throughput**: 1000+ requests/second
-- **Uptime**: 99.9% availability
-- **Data Processing**: Real-time market data analysis
-
-### **Trading Performance**
-- **Signal Accuracy**: 65-75% win rate (backtested)
-- **Execution Speed**: < 50ms order placement
-- **Slippage**: < 0.1% average slippage
-- **Risk Management**: < 2% maximum drawdown
-
-## 🤝 Contributing
-
-We welcome contributions! Here's how to get started:
-
-1. **Fork the repository**
-2. **Create a feature branch**: `git checkout -b feature/amazing-feature`
-3. **Make your changes** and add tests
-4. **Run the test suite**: `pytest`
-5. **Commit your changes**: `git commit -m 'Add amazing feature'`
-6. **Push to the branch**: `git push origin feature/amazing-feature`
-7. **Open a Pull Request**
-
-### **Development Guidelines**
-- Follow PEP 8 style guide
-- Add type hints to all functions
-- Write comprehensive tests
-- Update documentation
-- Use conventional commit messages
-
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## ⚠️ Important Disclaimers
-
-### **Trading Risks**
-- **High Risk**: Cryptocurrency trading involves substantial risk
-- **No Guarantees**: Past performance does not guarantee future results
-- **Capital Loss**: You may lose some or all of your invested capital
-- **Market Volatility**: Crypto markets are highly volatile
-
-### **Educational Purpose**
-This software is primarily for **educational and research purposes**. Use at your own risk. The authors are not responsible for any financial losses.
-
-### **Regulatory Compliance**
-- Ensure compliance with local trading regulations
-- Verify API usage complies with Binance terms of service
-- Consider tax implications of automated trading
-
-## 🆘 Support & Community
-
-### **Getting Help**
-1. **Documentation**: Check the [Wiki](https://github.com/your-repo/wiki)
-2. **Issues**: Search existing [Issues](https://github.com/your-repo/issues)
-3. **Discussions**: Join [Community Discussions](https://github.com/your-repo/discussions)
-4. **Discord**: Join our [Discord Server](https://discord.gg/your-server)
-
-### **Reporting Issues**
-When reporting issues, please include:
-- Detailed error messages
-- Steps to reproduce
-- Environment details
-- Log files (if applicable)
-
-## 🚀 Roadmap
-
-### **Upcoming Features**
-- [ ] Additional trading strategies (MACD, Bollinger Bands)
-- [ ] Machine learning signal generation
-- [ ] Mobile app for monitoring
-- [ ] Advanced portfolio management
-- [ ] Social trading features
-- [ ] Multi-exchange support
-
-### **Performance Improvements**
-- [ ] Enhanced backtesting engine
-- [ ] Real-time strategy optimization
-- [ ] Advanced risk management
-- [ ] Performance analytics dashboard
-
----
-
-**Ready to start automated trading? 🚀**
-
-*This bot is production-ready and actively maintained. Join thousands of traders who trust our automated trading solution!* 
+*This bot is production-ready and actively maintained.* 
