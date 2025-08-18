@@ -6,7 +6,8 @@
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen.svg)](https://github.com/your-repo)
 
-🚀 **Production-ready automated cryptocurrency trading bot** 
+🟢 **Deployed & Live:** is available at **https://binabot.xyz/** (Nginx → FastAPI/Uvicorn → Redis → PostgreSQL → Celery/Beat, Docker Compose на VPS).
+
 
 ## 🎯 What This Bot Does
 
