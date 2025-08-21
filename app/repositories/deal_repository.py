@@ -105,11 +105,23 @@ class DealRepository(BaseRepository):
 
     async def update_stop_loss(self, deal_id, new_stop_loss, session):
         await session.execute(
-            update(Deal)
-            .where(Deal.id == deal_id)
+            update(Deal).where(Deal.id == deal_id)
             .values(stop_loss=new_stop_loss)
         )
-        await session.commit()
+        await session.flush()
+
+    async def update_stop_loss_order_id(self, deal_id, stop_loss_order_id, session):
+        await session.execute(
+            update(Deal).where(Deal.id == deal_id)
+            .values(stop_loss_order_id=stop_loss_order_id)
+        )
+        await session.flush()
+
+    async def get_by_stop_loss_order_id(self, session, stop_loss_order_id):
+        result = await session.execute(
+            select(Deal).where(Deal.stop_loss_order_id == stop_loss_order_id)
+        )
+        return result.scalar_one_or_none()
 
     async def update_deal_from_binance(
         self,
@@ -130,7 +142,7 @@ class DealRepository(BaseRepository):
         if update_data:
             stmt = stmt.values(**update_data)
             await session.execute(stmt)
-            await session.commit()
+            await session.flush()
 
     async def get_by_order_id(self, session, order_id):
         result = await session.execute(
@@ -148,7 +160,7 @@ class DealRepository(BaseRepository):
         await session.execute(
             delete(Deal).where(Deal.id == deal_id)
         )
-        await session.commit()
+        await session.flush()
 
     async def update_max_price(self, deal_id, max_price, session):
         await session.execute(
