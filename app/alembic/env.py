@@ -49,13 +49,13 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    # Используем DATABASE_URL из переменных окружения
+    # Используем ALEMBIC_DATABASE_URL из переменных окружения
     import os
-    url = os.environ.get("DATABASE_URL") or config.get_main_option("sqlalchemy.url")
+    url = os.environ.get("ALEMBIC_DATABASE_URL") or config.get_main_option("sqlalchemy.url")
     context.configure(
         url=url,
         target_metadata=target_metadata,
-        literal_binds=True,
+        
         dialect_opts={"paramstyle": "named"},
     )
 
@@ -70,11 +70,11 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
-    # Используем DATABASE_URL из переменных окружения
+    # Используем ALEMBIC_DATABASE_URL из переменных окружения
     import os
-    database_url = os.environ.get("DATABASE_URL")
+    database_url = os.environ.get("ALEMBIC_DATABASE_URL")
     if not database_url:
-        raise ValueError("DATABASE_URL не найден. Установите его в переменных окружения")
+        raise ValueError("ALEMBIC_DATABASE_URL не найден. Установите его в переменных окружения")
     
     # Создаем engine с правильным URL
     connectable = engine_from_config(
@@ -100,11 +100,11 @@ else:
     # Проверяем, есть ли подключение к БД
     try:
         import os
-        database_url = os.environ.get("DATABASE_URL")
+        database_url = os.environ.get("ALEMBIC_DATABASE_URL")
         if database_url:
             run_migrations_online()
         else:
-            # Если нет DATABASE_URL, используем offline режим
+            # Если нет ALEMBIC_DATABASE_URL, используем offline режим
             run_migrations_offline()
     except Exception:
         # В случае ошибки используем offline режим
