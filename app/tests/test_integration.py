@@ -70,8 +70,9 @@ class TestTradingIntegration:
             parameters={
                 "ema_fast": 10,
                 "ema_slow": 30,
-                "deposit_prct": 5.0,
-                "trend_threshold": 0.001
+                "deposit_prct": 0.05,  # 5% в долях
+                "trend_threshold": 0.001,
+                "stop_loss_pct": 0.02  # 2% в долях
             },
             strategy_config_id=1
         )
@@ -84,8 +85,9 @@ class TestTradingIntegration:
             parameters={
                 "ema_fast": 10,
                 "ema_slow": 30,
-                "deposit_prct": 5.0,
-                "trend_threshold": 0.001
+                "deposit_prct": 0.05,  # 5% в долях
+                "trend_threshold": 0.001,
+                "stop_loss_pct": 0.02  # 2% в долях
             }
         )
 
@@ -98,7 +100,7 @@ class TestTradingIntegration:
         mock_deal.bot_id = 1
         mock_deal.template_id = 1
         mock_deal.symbol = "BTCUSDT"
-        mock_deal.side = "long"
+        mock_deal.side = "BUY"
         mock_deal.entry_price = 50000.0
         mock_deal.size = 0.001
         mock_deal.stop_loss = 49000.0
@@ -107,6 +109,8 @@ class TestTradingIntegration:
         mock_deal.closed_at = None
         mock_deal.pnl = None
         mock_deal.exit_price = None
+        mock_deal.order_id = None
+        mock_deal.stop_loss_order_id = None
         return mock_deal
 
     @pytest.mark.asyncio
@@ -148,7 +152,7 @@ class TestTradingIntegration:
         }
 
         trade_service = TradeService(
-            base_strategy=MagicMock(),
+            
             deal_service=mock_deal_service,
             marketdata_service=mock_marketdata_service,
             apikeys_service=mock_apikeys_service,
@@ -209,7 +213,7 @@ class TestTradingIntegration:
         mock_marketdata_service.get_klines.return_value = sample_market_data
 
         trade_service = TradeService(
-            base_strategy=MagicMock(),
+            
             deal_service=mock_deal_service,
             marketdata_service=mock_marketdata_service,
             apikeys_service=mock_apikeys_service,
@@ -258,12 +262,16 @@ class TestTradingIntegration:
         mock_repo.get_all.return_value = [sample_deal]
         mock_repo.get_by_id.return_value = sample_deal
 
+        mock_strategy_config_service = AsyncMock()
         deal_service = DealService(
             repo=mock_repo,
             binance_client=mock_binance_client,
             apikeys_service=mock_apikeys_service,
-            log_service=mock_log_service
+            log_service=mock_log_service,
+            strategy_config_service=mock_strategy_config_service
         )
+        # Мокаем метод получения названия стратегии
+        deal_service._get_strategy_name = AsyncMock(return_value="TestStrategy")
 
         deal_data = DealCreate(
             user_id=uuid4(),
@@ -281,7 +289,7 @@ class TestTradingIntegration:
         
         assert created_deal.id == 1
         assert created_deal.symbol == sample_symbol
-        assert created_deal.side == "long"
+        assert created_deal.side == "BUY"
         mock_repo.add.assert_called_once()
         mock_session.commit.assert_called_once()
 
@@ -342,7 +350,7 @@ class TestTradingIntegration:
         mock_apikeys_service.get_api_keys.return_value = (None, None)  # Нет API ключей
 
         trade_service = TradeService(
-            base_strategy=MagicMock(),
+            
             deal_service=mock_deal_service,
             marketdata_service=mock_marketdata_service,
             apikeys_service=mock_apikeys_service,
@@ -388,12 +396,16 @@ class TestTradingIntegration:
 
         mock_repo.get_open_deal_by_symbol.return_value = sample_deal
 
+        mock_strategy_config_service = AsyncMock()
         deal_service = DealService(
             repo=mock_repo,
             binance_client=mock_binance_client,
             apikeys_service=mock_apikeys_service,
-            log_service=mock_log_service
+            log_service=mock_log_service,
+            strategy_config_service=mock_strategy_config_service
         )
+        # Мокаем метод получения названия стратегии
+        deal_service._get_strategy_name = AsyncMock(return_value="TestStrategy")
 
         open_deal = await deal_service.get_open_deal_for_user_and_symbol(
             sample_user_id, sample_symbol

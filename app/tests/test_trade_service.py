@@ -61,7 +61,6 @@ class TestTradeService:
         mock_userbot_service
     ):
         return TradeService(
-            base_strategy=MagicMock(),
             deal_service=mock_deal_repository,
             marketdata_service=mock_marketdata_service,
             apikeys_service=mock_apikeys_service,
@@ -164,12 +163,13 @@ class TestTradeService:
             mock_strategy_class.return_value = mock_strategy
             
             mock_strategy_config = MagicMock()
-            mock_strategy_config.name = "NovichokStrategy"
+            mock_strategy_config.name = "novichok"
             mock_strategy_config.parameters = {
                 "ema_fast": 10,
                 "ema_slow": 30,
                 "trend_threshold": 0.001,
-                "deposit_prct": 5.0
+                "deposit_prct": 0.05,
+                "stop_loss_pct": 0.02
             }
             
             result = trade_service._generate_signal(mock_strategy_config, market_data)
@@ -193,12 +193,13 @@ class TestTradeService:
             mock_strategy_class.return_value = mock_strategy
             
             mock_strategy_config = MagicMock()
-            mock_strategy_config.name = "NovichokStrategy"
+            mock_strategy_config.name = "novichok"
             mock_strategy_config.parameters = {
                 "ema_fast": 10,
                 "ema_slow": 30,
                 "trend_threshold": 0.001,
-                "deposit_prct": 5.0
+                "deposit_prct": 0.05,  # 5% в долях
+                "stop_loss_pct": 0.02  # 2% в долях
             }
             
             result = trade_service._generate_signal(mock_strategy_config, market_data)
@@ -208,9 +209,9 @@ class TestTradeService:
     async def test_start_trading(self, trade_service, mock_session, mock_userbot_service):
         """Тест запуска торговли"""
         user_id = uuid4()
-        
+
         with patch.object(trade_service, 'run_trading_cycle', new_callable=AsyncMock) as mock_run_cycle:
-            await trade_service.start_trading(user_id, test_mode=True, session=mock_session)
+            await trade_service.start_trading(user_id, session=mock_session)
             
             mock_run_cycle.assert_called_once()
 
@@ -251,20 +252,27 @@ class TestTradeService:
         """Тест расчета размера позиции"""
         api_key = "test-api-key"
         api_secret = "test-api-secret"
-
+        
         mock_balance_service.get_futures_balance.return_value = {"available": 10000.0}
-
+        
         mock_template = MagicMock()
         mock_template.parameters = {
             "ema_fast": 10,
             "ema_slow": 30,
             "trend_threshold": 0.001,
-            "deposit_prct": 5.0
+            "deposit_prct": 0.05,  # 5% в долях
+            "stop_loss_pct": 0.02  # 2% в долях
         }
-
+        mock_template.strategy_config_id = 1
+        
         mock_df = pd.DataFrame({
             'close': [50000.0] * 50
         })
+
+        # Мокаем strategy_config_service.get_by_id()
+        mock_strategy_config = MagicMock()
+        mock_strategy_config.name = "novichok"
+        trade_service.strategy_config_service.get_by_id.return_value = mock_strategy_config
 
         with patch('strategies.novichok_strategy.NovichokStrategy') as mock_strategy_class:
             mock_strategy = MagicMock()

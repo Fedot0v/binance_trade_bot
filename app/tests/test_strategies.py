@@ -15,7 +15,8 @@ class TestNovichokStrategy:
             "ema_fast": 10,
             "ema_slow": 30,
             "trend_threshold": 0.001,
-            "deposit_prct": 5.0
+            "deposit_prct": 0.05,  # 5% в долях
+            "stop_loss_pct": 0.02  # 2% в долях
         })
 
     @pytest.fixture
@@ -79,7 +80,8 @@ class TestNovichokStrategy:
         assert strategy.ema_fast == 10
         assert strategy.ema_slow == 30
         assert strategy.trend_threshold == 0.001
-        assert strategy.risk_pct == 5.0
+        assert strategy.risk_pct == 0.05  # 5% в долях
+        assert strategy.stop_loss_pct == 0.02
 
     def test_strategy_initialization_default_values(self):
         """Тест инициализации с дефолтными значениями"""
@@ -89,7 +91,8 @@ class TestNovichokStrategy:
         assert strategy.ema_fast == 10  # дефолтное значение
         assert strategy.ema_slow == 30  # дефолтное значение
         assert strategy.trend_threshold == 0.001  # дефолтное значение
-        assert strategy.risk_pct == 5.0  # дефолтное значение
+        assert strategy.risk_pct == 0.05  # дефолтное значение (5% в долях)
+        assert strategy.stop_loss_pct == 0.02  # дефолтное значение
 
     def test_generate_signal_long_trend(self, strategy, sample_data_long_trend):
         """Тест генерации сигнала на покупку при восходящем тренде"""
@@ -139,9 +142,9 @@ class TestNovichokStrategy:
         balance = 10000.0
         position_size = strategy.calculate_position_size(balance)
         
-        expected_size = balance * strategy.risk_pct / 100
+        expected_size = balance * strategy.risk_pct  # risk_pct теперь в долях
         assert position_size == expected_size
-        assert position_size == 500.0  # 5% от 10000
+        assert position_size == 500.0  # 5% от 10000 (0.05 * 10000)
 
     def test_calculate_position_size_zero_balance(self, strategy):
         """Тест расчета размера позиции при нулевом балансе"""
@@ -155,23 +158,36 @@ class TestNovichokStrategy:
         balance = -1000.0
         position_size = strategy.calculate_position_size(balance)
         
-        expected_size = balance * strategy.risk_pct / 100
+        expected_size = balance * strategy.risk_pct  # risk_pct теперь в долях
         assert position_size == expected_size
-        assert position_size == -50.0
+        assert position_size == -50.0  # -1000 * 0.05
+    
+    def test_calculate_stop_loss_price_long(self, strategy):
+        """Тест расчета цены стоп-лосса для длинной позиции"""
+        entry_price = 50000.0
+        side = "BUY"
+        stop_loss_price = strategy.calculate_stop_loss_price(entry_price, side)
+        expected_price = entry_price * (1 - 0.02)  # 2% стоп-лосс
+        assert stop_loss_price == expected_price
+    
+    def test_calculate_stop_loss_price_short(self, strategy):
+        """Тест расчета цены стоп-лосса для короткой позиции"""
+        entry_price = 50000.0
+        side = "SELL"
+        stop_loss_price = strategy.calculate_stop_loss_price(entry_price, side)
+        expected_price = entry_price * (1 + 0.02)  # 2% стоп-лосс
+        assert stop_loss_price == expected_price
 
     def test_ema_calculation(self, strategy, sample_data_long_trend):
         """Тест корректности расчета EMA"""
         df = sample_data_long_trend
         
-        # Рассчитываем EMA вручную для проверки
         ema_fast_manual = df['close'].ewm(span=strategy.ema_fast).mean()
         ema_slow_manual = df['close'].ewm(span=strategy.ema_slow).mean()
         
-        # Получаем последние значения
         last_fast = ema_fast_manual.iloc[-1]
         last_slow = ema_slow_manual.iloc[-1]
         
-        # Проверяем, что стратегия использует правильную логику
         signal = strategy.generate_signal(df)
         
         if last_fast > last_slow:
@@ -183,12 +199,12 @@ class TestNovichokStrategy:
 
     def test_strategy_parameters_validation(self):
         """Тест валидации параметров стратегии"""
-        # Тест с некорректными параметрами
         params = StrategyParameters({
-            "ema_fast": -10,  # Отрицательное значение
-            "ema_slow": 0,    # Нулевое значение
-            "trend_threshold": -0.001,  # Отрицательное значение
-            "deposit_prct": 150.0  # Слишком большое значение
+            "ema_fast": -10,
+            "ema_slow": 0,
+            "trend_threshold": -0.001,
+            "deposit_prct": 1.5,
+            "stop_loss_pct": 0.5
         })
         
         # Стратегия использует параметры как есть (без валидации)
@@ -197,7 +213,8 @@ class TestNovichokStrategy:
         assert strategy.ema_fast == -10  # Использует переданное значение
         assert strategy.ema_slow == 0    # Использует переданное значение
         assert strategy.trend_threshold == -0.001  # Использует переданное значение
-        assert strategy.risk_pct == 150.0  # Использует переданное значение
+        assert strategy.risk_pct == 1.5  # Использует переданное значение (150% в долях)
+        assert strategy.stop_loss_pct == 0.5  # Использует переданное значение (50% в долях)
 
 
 class TestBaseStrategy:

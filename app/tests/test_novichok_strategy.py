@@ -13,7 +13,8 @@ def sample_strategy_params():
         "ema_fast": 10,
         "ema_slow": 30,
         "trend_threshold": 0.001,
-        "deposit_prct": 5.0
+        "deposit_prct": 0.05,  # 5% в долях
+        "stop_loss_pct": 0.02  # 2% в долях
     })
 
 
