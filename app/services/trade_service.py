@@ -12,7 +12,8 @@ from services.user_strategy_template_service import UserStrategyTemplateService
 from services.strategy_log_service import StrategyLogService
 from schemas.user_strategy_template import UserStrategyTemplateRead
 from services.strategy_config_service import StrategyConfigService
-from strategies.strategy_factory import get_strategy_class_by_name
+from strategies.strategy_factory import make_strategy, get_strategy_class_by_name
+from strategies.contracts import Decision, OrderIntent
 from services.balance_service import BalanceService
 from services.order_service import OrderService
 from encryption.crypto import decrypt
@@ -20,6 +21,13 @@ from schemas.deal import DealCreate
 from services.bot_service import UserBotService
 from schemas.strategy_log import StrategyLogCreate
 from services.strategy_parameters import StrategyParameters
+
+
+TRAIL_PCT = 0.002
+
+
+def _sym_str(x) -> str:
+    return x.value if hasattr(x, "value") else str(x)
 
 
 class TradeService:
@@ -52,7 +60,6 @@ class TradeService:
         bot_id,
         user_id,
         symbol,
-        test_mode=False,
         session=None
     ):
         print(f"=== START: Trading Cycle | bot_id={bot_id} user_id={user_id} symbol={symbol} ===")
@@ -85,57 +92,30 @@ class TradeService:
             df = await self._get_market_data(api_key, api_secret, template)
             print(f"Свечи: {df.tail(3).to_dict('records')}")
 
-            print("Шаг 4: Генерация сигнала")
-            signal = self._generate_signal(strategy_config, df)
-            print(f"Сигнал стратегии: {signal}")
+            print("Шаг 4: Решение стратегии")
+            strategy = make_strategy(strategy_config.name, template)
+            symbol_str = _sym_str(template.symbol)
+            md = {symbol_str: df}
+            decision = await strategy.decide(md, template, open_state={})
 
-            if signal == 'hold':
-                print("Сигнал hold — пропуск, торговля не совершается")
+            print(f"Decision: intents={len(decision.intents)}, ttl={decision.bundle_ttl_sec}")
+            if not decision.intents:
+                print("Решение пустое — пропуск")
                 return
 
-            print("Шаг 5: Расчёт позиции")
-            quantity, price = await self._calculate_position(
-                api_key,
-                api_secret,
-                template,
-                df
-            )
-            print(
-                f"Рассчитан размер позиции: quantity={quantity},\
-                    расчетная цена={price}"
+            print("Шаг 5: Исполнение намерений")
+            for intent in decision.intents:
+                await self._execute_intent_from_decision(
+                    user_id=user_id,
+                    bot_id=bot_id,
+                    template=template,
+                    intent=intent,
+                    md=md,
+                    api_key=api_key,
+                    api_secret=api_secret,
+                    session=session,
+                    strategy=strategy
                 )
-
-            print("Шаг 6: Создание ордера")
-            order_result = await self._place_order(
-                api_key,
-                api_secret,
-                template,
-                signal,
-                quantity
-            )
-            print(f"Результат отправки ордера: {order_result}")
-
-            print("Шаг 7: Получение entry price")
-            entry_price = await self._fetch_entry_price(
-                api_key,
-                api_secret,
-                template.symbol.value,
-                order_result['orderId']
-            )
-            print(f"Entry price: {entry_price}")
-
-            print("Шаг 8: Запись сделки и логов")
-            await self._record_deal(
-                user_id,
-                bot_id,
-                template,
-                entry_price,
-                order_result,
-                signal,
-                strategy_config,
-                quantity,
-                session
-            )
 
         print("=== END: Trading Cycle ===")
 
@@ -225,19 +205,13 @@ class TradeService:
         print(f"Рассчитано: quantity={quantity} (size={size}/price={price})")
         return quantity, price
 
-    async def _place_order(
-        self,
-        api_key,
-        api_secret,
-        template,
-        signal,
-        quantity
-    ):
+    async def _place_order(self, api_key, api_secret, template, signal, quantity, symbol_override: str | None = None):
         order_side = "BUY" if signal == "long" else "SELL"
-        print(f"Создание ордера: symbol={template.symbol.value}, side={order_side}, quantity={quantity}, leverage={template.leverage}")
+        symbol_val = symbol_override or template.symbol.value
+        print(f"Создание ордера: symbol={symbol_val}, side={order_side}, quantity={quantity}, leverage={template.leverage}")
         result = await self.order_service.create_order(
             api_key, api_secret,
-            symbol=template.symbol.value,
+            symbol=symbol_val,
             side=order_side,
             quantity=quantity,
             leverage=int(template.leverage),
@@ -286,21 +260,35 @@ class TradeService:
         signal,
         strategy_config,
         size,
-        session
+        session,
+        symbol_override: str | None = None,
+        strategy=None
     ):
         print("Сохранение сделки в базе данных")
-        params = StrategyParameters(template.parameters)
+        side = "BUY" if signal == "long" else "SELL"
+        symbol_val = symbol_override or getattr(template.symbol, "value", str(template.symbol))
+
+        # Используем стратегию для расчета стоп-лосса, если она передана
+        if strategy and hasattr(strategy, 'calculate_stop_loss_price'):
+            stop_loss_price = strategy.calculate_stop_loss_price(entry_price, side)
+            print(f"Стоп-лосс рассчитан стратегией: {stop_loss_price:.4f}")
+        else:
+            # Fallback на старую логику
+            TRAIL_PCT = 0.002
+            stop_loss_price = entry_price * (1 - TRAIL_PCT) if side == "BUY" else entry_price * (1 + TRAIL_PCT)
+            print(f"Стоп-лосс рассчитан по умолчанию: {stop_loss_price:.4f}")
+
         deal_data = DealCreate(
             user_id=user_id,
             bot_id=bot_id,
             template_id=template.id,
             order_id=str(order_result["orderId"]),
-            symbol=template.symbol,
+            symbol=symbol_val,
             side="BUY" if signal == "long" else "SELL",
             entry_price=entry_price,
             size=size,
             status="open",
-            stop_loss=params.get_float("stop_loss_pct", 0)
+            stop_loss=float(stop_loss_price)
         )
         print(f"Данные для записи сделки: {deal_data}")
         deal = await self.deal_service.create(
@@ -309,6 +297,30 @@ class TradeService:
             autocommit=False
         )
         print(f"Сделка записана в базе, id={deal.id}")
+        
+        # Создаем стоп лосс ордер на Binance
+        try:
+            # Получаем API ключи для создания клиента
+            keys = await self.apikeys_service.get_decrypted_by_user(user_id)
+            keys = keys[0] if keys else None
+            if keys:
+                client = await self.exchange_client_factory.create(
+                    keys.api_key_encrypted, keys.api_secret_encrypted, exchange="binance"
+                )
+                try:
+                    # Создаем стоп лосс ордер
+                    stop_loss_order_id = await self.deal_service.create_stop_loss_order(
+                        deal, session, client, stop_loss_price
+                    )
+                    print(f"Стоп-лосс ордер создан на Binance: {stop_loss_order_id}")
+                finally:
+                    await self.exchange_client_factory.close(client)
+            else:
+                print("Не удалось получить API ключи для создания стоп-лосс ордера")
+        except Exception as e:
+            print(f"Ошибка при создании стоп-лосс ордера: {e}")
+            # Продолжаем работу даже если стоп-лосс ордер не создался
+        
         await self.log_service.add_log(
             StrategyLogCreate(
                 user_id=user_id,
@@ -322,13 +334,11 @@ class TradeService:
         )
         print(f"Лог по сделке {deal.id} добавлен")
 
-    async def start_trading(self, user_id, test_mode=True, session=None):
+    async def start_trading(self, user_id, session=None):
         print("=== Вызов start_trading ===")
-        
         await self.run_trading_cycle(
             user_id,
             session=session,
-            test_mode=test_mode
             )
 
     async def stop_trading(self, user_id: UUID, session):
@@ -341,3 +351,70 @@ class TradeService:
 
     async def get_logs(self, deal_id: int):
         return await self.log_service.get_logs_by_deal(deal_id)
+
+    async def _execute_intent_from_decision(self, user_id, bot_id, template, intent, md, api_key, api_secret, session, strategy=None):
+        symbol_str = intent.symbol
+        df_symbol = md.get(symbol_str)
+        if df_symbol is None or df_symbol.empty:
+            # подгрузка на случай, если стратегия вернула другой символ (на будущее)
+            kl = await self.marketdata_service.get_klines(
+                api_key, api_secret,
+                symbol=symbol_str,
+                interval=template.interval.value,
+                limit=500
+            )
+            df_symbol = pd.DataFrame(kl, columns=[
+                'open_time','open','high','low','close','volume','close_time',
+                'quote_asset_volume','number_of_trades','taker_buy_base','taker_buy_quote','ignore'
+            ])
+            df_symbol['close'] = df_symbol['close'].astype(float)
+
+        last_price = float(df_symbol['close'].iloc[-1])
+
+        # sizing -> usd_size
+        sizing = getattr(intent, "sizing", "usd")
+        if sizing == "risk_pct":
+            bal = await self.balance_service.get_futures_balance(api_key, api_secret, asset="USDT")
+            usd_size = float(bal["available"]) * float(intent.size)   # intent.size в долях (0..1]
+        elif sizing == "usd":
+            usd_size = float(intent.size)
+        elif sizing == "qty":
+            # реже используется; оставим поддержку
+            qty_direct = float(intent.size)
+            usd_size = qty_direct * last_price
+        else:
+            print(f"Неизвестный sizing: {sizing}, пропуск")
+            return
+
+        # qty (оставляю твою текущую логику; квантование stepSize подключим позже)
+        quantity = round(usd_size / last_price, 3)
+        order_side = intent.side  # BUY/SELL
+        legacy_signal = 'long' if order_side == 'BUY' else 'short'  # чтобы переиспользовать существующие методы
+
+        print("Создание ордера (по intent)")
+        order_result = await self._place_order(
+            api_key, api_secret,
+            template=template,
+            signal=legacy_signal,
+            quantity=quantity,
+            symbol_override=symbol_str  # <— см. изменение сигнатуры ниже
+        )
+
+        print("Получение entry price")
+        entry_price = await self._fetch_entry_price(api_key, api_secret, symbol_str, order_result['orderId'])
+
+        print("Запись сделки и логов")
+        strategy_config = await self.strategy_config_service.get_by_id(template.strategy_config_id)
+        await self._record_deal(
+            user_id=user_id,
+            bot_id=bot_id,
+            template=template,
+            entry_price=entry_price,
+            order_result=order_result,
+            signal=legacy_signal,
+            strategy_config=strategy_config,
+            size=quantity,
+            session=session,
+            symbol_override=symbol_str,
+            strategy=strategy
+        )
