@@ -10,7 +10,8 @@ REGISTRY = {
             "ema_fast": 10,
             "ema_slow": 30,
             "trend_threshold": 0.002,
-            "deposit_prct": 10
+            "deposit_prct": 0.10,
+            "stop_loss_pct": 0.02
         },
         "is_active": True,
     },
