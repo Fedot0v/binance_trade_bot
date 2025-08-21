@@ -68,7 +68,7 @@ def periodic_trade_cycle(bot_id, user_id, symbol):
             expire_on_commit=False
         )
         async with async_session() as session:
-            trade_service = build_trade_service(session, testnet=False)
+            trade_service = build_trade_service(session)
             await trade_service.run_trading_cycle(
                 bot_id=bot_id_converted,
                 user_id=user_id_converted,

@@ -47,7 +47,7 @@ def get_service(service_class: Type[S], repo_class: Type[T]):
 
 
 def get_binance_factory() -> ExchangeClientFactory:
-    return BinanceClientFactory(testnet=False)
+    return BinanceClientFactory()
 
 
 get_strategy_service = get_service(

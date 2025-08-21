@@ -1,3 +1,5 @@
+import os
+
 from fastapi_users.authentication import (
     JWTStrategy,
     AuthenticationBackend,
@@ -5,13 +7,13 @@ from fastapi_users.authentication import (
 )
 
 
-SECRET = "VERY_SECRET"
+SECRET = os.environ.get("SECRET")
 
 
 cookie_transport = CookieTransport(
     cookie_name="binauth",
     cookie_max_age=3600*24*30,
-    cookie_secure=True,
+    cookie_secure=False,
     cookie_samesite="lax",
     cookie_domain="binabot.xyz"
     )
