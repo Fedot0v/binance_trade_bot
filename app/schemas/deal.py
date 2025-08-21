@@ -18,6 +18,7 @@ class DealBase(BaseModel):
 
 class DealCreate(DealBase):
     order_id: Optional[str] = None
+    stop_loss_order_id: Optional[str] = None
     stop_loss: Optional[float] = None
     template_id: int
     bot_id: int
@@ -25,6 +26,8 @@ class DealCreate(DealBase):
 
 class DealRead(DealBase):
     id: int
+    order_id: Optional[str] = None
+    stop_loss_order_id: Optional[str] = None
     opened_at: datetime
     closed_at: Optional[datetime]
     pnl: Optional[float]

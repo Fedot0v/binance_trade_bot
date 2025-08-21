@@ -4,6 +4,10 @@ from unittest.mock import AsyncMock, MagicMock
 import pandas as pd
 import numpy as np
 from datetime import datetime
+import os
+
+# Мокаем FERNET_KEY для тестов (32 байта в base64)
+os.environ["FERNET_KEY"] = "dGVzdC1mZXJuZXQta2V5LWZvci10ZXN0aW5nLW9ubHk="
 
 from services.strategy_parameters import StrategyParameters
 from models.trade_models import Deal
@@ -26,7 +30,8 @@ def sample_strategy_params():
         "risk_pct": 0.05,
         "entry_pct": 0.9,
         "trend_threshold": 0.001,
-        "deposit_prct": 5.0
+        "deposit_prct": 0.05,
+        "stop_loss_pct": 0.02
     }
 
 @pytest.fixture
@@ -35,7 +40,8 @@ def strategy_parameters():
         "ema_fast": 10,
         "ema_slow": 30,
         "trend_threshold": 0.001,
-        "deposit_prct": 5.0
+        "deposit_prct": 0.05,
+        "stop_loss_pct": 0.02
     })
 
 @pytest.fixture
@@ -200,8 +206,9 @@ def sample_strategy_template():
         parameters={
             "ema_fast": 10,
             "ema_slow": 30,
-            "deposit_prct": 5.0,
-            "trend_threshold": 0.001
+            "deposit_prct": 0.05,
+            "trend_threshold": 0.001,
+            "stop_loss_pct": 0.02
         },
         strategy_config_id=1
     )
@@ -214,8 +221,9 @@ def sample_strategy_config():
         parameters={
             "ema_fast": 10,
             "ema_slow": 30,
-            "deposit_prct": 5.0,
-            "trend_threshold": 0.001
+            "deposit_prct": 0.05,
+            "trend_threshold": 0.001,
+            "stop_loss_pct": 0.02
         }
     )
 

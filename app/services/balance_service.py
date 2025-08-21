@@ -15,7 +15,6 @@ class BalanceService:
                         "balance": float(item["balance"]),
                         "available": float(item["availableBalance"])
                     }
-            # Если не найдено
             return {"asset": asset, "balance": 0.0, "available": 0.0}
         finally:
             await self.client_factory.close(client)

@@ -48,6 +48,7 @@ class Deal(Base):
     pnl: Mapped[float] = mapped_column(Float, nullable=True)
     status: Mapped[str] = mapped_column(String, nullable=False)
     order_id: Mapped[str] = mapped_column(String, nullable=True)
+    stop_loss_order_id: Mapped[str] = mapped_column(String, nullable=True)
     opened_at: Mapped[datetime] = mapped_column(server_default=func.now())
     closed_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     logs: Mapped[list["StrategyLog"]] = relationship(

@@ -10,7 +10,7 @@ class BinanceClientFactory(ExchangeClientFactory):
     Args:
         testnet (bool): Указывает, использовать ли тестовую сеть Binance.
     """
-    def __init__(self, testnet: bool = False):
+    def __init__(self, testnet: bool = True):
         self.testnet = testnet
         self.logger = logging.getLogger(__name__)
 
