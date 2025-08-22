@@ -199,10 +199,21 @@ class TradeService:
         )
         strategy = get_strategy_class_by_name(strategy_config.name, params)
 
+        print(f"🔍 Расчет позиции: balance={balance}, strategy={strategy.__class__.__name__}")
         size = strategy.calculate_position_size(balance)
         price = df['close'].iloc[-1]
         quantity = round(size / price, 3)
-        print(f"Рассчитано: quantity={quantity} (size={size}/price={price})")
+        print(f"📊 Рассчитано: quantity={quantity} (size={size}/price={price})")
+        
+        if quantity <= 0:
+            print(f"❌ ПРОБЛЕМА: quantity={quantity}")
+            print(f"   - Баланс: {balance}")
+            print(f"   - Размер позиции: {size}")
+            print(f"   - Цена: {price}")
+            print(f"   - Стратегия: {strategy.__class__.__name__}")
+            print(f"   - Параметры стратегии: {strategy.config if hasattr(strategy, 'config') else 'N/A'}")
+            raise Exception(f"Недостаточно средств для создания ордера. Баланс: {balance}, Размер позиции: {size}, Количество: {quantity}")
+        
         return quantity, price
 
     async def _place_order(self, api_key, api_secret, template, signal, quantity, symbol_override: str | None = None):
