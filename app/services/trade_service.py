@@ -202,7 +202,7 @@ class TradeService:
         print(f"🔍 Расчет позиции: balance={balance}, strategy={strategy.__class__.__name__}")
         size = strategy.calculate_position_size(balance)
         price = df['close'].iloc[-1]
-        quantity = round(size / price, 3)
+        quantity = round(size / price, 6)
         print(f"📊 Рассчитано: quantity={quantity} (size={size}/price={price})")
         
         if quantity <= 0:
@@ -403,10 +403,9 @@ class TradeService:
             return
 
         # qty (оставляю твою текущую логику; квантование stepSize подключим позже)
-        quantity = round(usd_size / last_price, 3)
+        quantity = round(usd_size / last_price, 6)
         print(f"📊 Финальный расчет: usd_size={usd_size}, last_price={last_price}, quantity={quantity}")
         
-        # ПРОВЕРКА: если quantity = 0, значит проблема в расчете
         if quantity <= 0:
             print(f"❌ ПРОБЛЕМА: quantity={quantity}")
             print(f"   - usd_size: {usd_size}")
