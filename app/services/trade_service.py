@@ -384,21 +384,36 @@ class TradeService:
 
         # sizing -> usd_size
         sizing = getattr(intent, "sizing", "usd")
+        print(f"🔍 Диагностика intent: sizing={sizing}, intent.size={intent.size}, intent.side={intent.side}")
+        
         if sizing == "risk_pct":
             bal = await self.balance_service.get_futures_balance(api_key, api_secret, asset="USDT")
             usd_size = float(bal["available"]) * float(intent.size)   # intent.size в долях (0..1]
+            print(f"📊 Расчет risk_pct: balance={bal['available']}, intent.size={intent.size}, usd_size={usd_size}")
         elif sizing == "usd":
             usd_size = float(intent.size)
+            print(f"📊 Расчет usd: usd_size={usd_size}")
         elif sizing == "qty":
             # реже используется; оставим поддержку
             qty_direct = float(intent.size)
             usd_size = qty_direct * last_price
+            print(f"📊 Расчет qty: qty_direct={qty_direct}, last_price={last_price}, usd_size={usd_size}")
         else:
-            print(f"Неизвестный sizing: {sizing}, пропуск")
+            print(f"❌ Неизвестный sizing: {sizing}, пропуск")
             return
 
         # qty (оставляю твою текущую логику; квантование stepSize подключим позже)
         quantity = round(usd_size / last_price, 3)
+        print(f"📊 Финальный расчет: usd_size={usd_size}, last_price={last_price}, quantity={quantity}")
+        
+        # ПРОВЕРКА: если quantity = 0, значит проблема в расчете
+        if quantity <= 0:
+            print(f"❌ ПРОБЛЕМА: quantity={quantity}")
+            print(f"   - usd_size: {usd_size}")
+            print(f"   - last_price: {last_price}")
+            print(f"   - intent.size: {intent.size}")
+            print(f"   - sizing: {sizing}")
+            raise Exception(f"Недостаточно средств для создания ордера. usd_size: {usd_size}, quantity: {quantity}")
         order_side = intent.side  # BUY/SELL
         legacy_signal = 'long' if order_side == 'BUY' else 'short'  # чтобы переиспользовать существующие методы
 
