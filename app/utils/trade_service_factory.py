@@ -19,7 +19,7 @@ from repositories.bot_repository import UserBotRepository
 from clients.binance_client import BinanceClientFactory
 
 
-def build_trade_service(session, *, testnet=True):
+def build_trade_service(session, *, testnet=False):
     exchange_client_factory = BinanceClientFactory(testnet=testnet)
 
     deal_repo = DealRepository(session)
@@ -54,7 +54,7 @@ def build_trade_service(session, *, testnet=True):
     return trade_service
 
 
-def build_deal_service(session, *, testnet=True):
+def build_deal_service(session, *, testnet=False):
     exchange_client_factory = BinanceClientFactory(testnet=testnet)
     deal_repo = DealRepository(session)
     apikeys_repo = APIKeysRepository(session)
