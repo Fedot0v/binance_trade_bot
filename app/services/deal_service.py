@@ -17,13 +17,15 @@ class DealService:
         binance_client=None,
         apikeys_service=None,
         log_service=None,
-        strategy_config_service: StrategyConfigService = None
+        strategy_config_service: StrategyConfigService = None,
+        strategy_manager=None
     ):
         self.repo = repo
         self.binance_client = binance_client
         self.apikeys_service = apikeys_service
         self.log_service = log_service
         self.strategy_config_service = strategy_config_service
+        self.strategy_manager = strategy_manager
 
     async def create(
         self,
@@ -144,12 +146,14 @@ class DealService:
             )
             return
 
+        print(f"API-ключ (частично скрыт): {keys.api_key_encrypted[:6]}***")
+        client_testnet_status = self.binance_client.testnet
         print(
             f"API-ключ найден для user_id={deal.user_id},\
-                создаём бинанс-клиент"
+                создаём бинанс-клиент. Используем testnet={client_testnet_status}"
         )
         client = await self.binance_client.create(
-            keys.api_key_encrypted, keys.api_secret_encrypted, testnet=False
+            keys.api_key_encrypted, keys.api_secret_encrypted, testnet=client_testnet_status
         )
         try:
             await self._sync_deal_with_binance(deal, session, client)
@@ -199,56 +203,31 @@ class DealService:
             )
             return
 
-        await self._update_stop_loss_if_needed(deal, session, client)
-
-    async def _update_stop_loss_if_needed(
-        self,
-        deal,
-        session,
-        client,
-        log_service=None
-    ):
-        print(
-            f"Проверка стоп-лосса по сделке {deal.id}:\
-                entry_price={deal.entry_price},\
-                    стоп={deal.stop_loss}, side={deal.side}"
-        )
-        price = await self._get_current_mark_price(client, deal.symbol)
-        print(f"Текущая mark price: {price}")
-
-        updated, new_stop, stop_dir = await self._trailing_stop_update(
-            deal,
-            session,
-            price,
-            client
-        )
-
-        if updated:
-            print(f"[TRAILING] Стоп-лосс обновлён: {new_stop:.4f} ({stop_dir})")
-        else:
-            print(f"[TRAILING] Стоп-лосс не изменился")
-
-        # Если есть стоп лосс ордер на Binance, не проверяем локально
-        if deal.stop_loss_order_id:
-            print(f"Стоп-лосс ордер активен на Binance: {deal.stop_loss_order_id}")
-            return
-
-        # Проверяем стоп лосс только если нет ордера на бирже (fallback)
-        stop_loss_price = self._calculate_absolute_stop_loss(deal)
-        print(f"Рассчитан абсолютный stop_loss_price: {stop_loss_price}")
-
-        if self._is_stop_loss_triggered(deal, price, stop_loss_price):
-            print(
-                f"ЛОКАЛЬНЫЙ СТОП-ЛОСС СРАБОТАЛ! side={deal.side},\
-                    price={price}, stop_loss_price={stop_loss_price}"
-            )
-            await self._close_deal_on_stop_loss(
-                deal,
-                session,
-                client,
-                price,
-                stop_loss_price
-            )
+        # Если есть StrategyManager, используем его для trailing stop
+        if self.strategy_manager:
+            try:
+                # Получаем рыночные данные для trailing stop
+                from services.marketdata_service import MarketDataService
+                marketdata_service = MarketDataService()
+                
+                # Получаем данные для символа сделки
+                klines = await marketdata_service.get_klines(
+                    keys.api_key_encrypted, keys.api_secret_encrypted,
+                    symbol=symbol, interval="1m", limit=1
+                )
+                if klines:
+                    df = pd.DataFrame(klines, columns=[
+                        'open_time', 'open', 'high', 'low', 'close', 'volume', 'close_time',
+                        'quote_asset_volume', 'number_of_trades', 'taker_buy_base',
+                        'taker_buy_quote', 'ignore'
+                    ])
+                    df['close'] = df['close'].astype(float)
+                    
+                    market_data = {symbol: df}
+                    await self.strategy_manager.update_trailing_stops([deal], market_data, session, client)
+                    await self.strategy_manager.check_strategy_exit_signals([deal], market_data, session, client)
+            except Exception as e:
+                print(f"Ошибка при использовании StrategyManager: {e}")
 
     async def create_stop_loss_order(
         self,
@@ -268,6 +247,7 @@ class DealService:
         stop_side = 'SELL' if deal.side == 'BUY' else 'BUY'
         
         try:
+            print(f"➡️ Отправка ордера STOP_MARKET: symbol={symbol_str}, side={stop_side}, quantity={deal.size}, stopPrice={stop_loss_price:.4f}")
             # Создаем стоп-маркет ордер
             stop_order = await client.futures_create_order(
                 symbol=symbol_str,
@@ -288,7 +268,7 @@ class DealService:
             return stop_loss_order_id
             
         except Exception as e:
-            print(f"Ошибка при создании стоп-лосс ордера: {e}")
+            print(f"❌ Ошибка при создании стоп-лосс ордера на Binance: {e}. Параметры: symbol={symbol_str}, side={stop_side}, quantity={deal.size}, stopPrice={stop_loss_price:.4f}")
             raise
 
     async def update_stop_loss_order(
@@ -324,7 +304,7 @@ class DealService:
             
         except Exception as e:
             print(f"Ошибка при обновлении стоп-лосс ордера: {e}")
-            # Если не удалось обновить, создаем новый
+            # Если не удалось обновить ордер, создаем новый
             return await self.create_stop_loss_order(deal, session, client, new_stop_loss_price)
 
     async def cancel_stop_loss_order(
@@ -431,176 +411,6 @@ class DealService:
             print(f"Ошибка при проверке статуса стоп-лосс ордера: {e}")
             
         return False
-
-    async def _get_current_mark_price(self, client, symbol):
-        price_info = await client.futures_mark_price(symbol=symbol)
-        return round(float(price_info["markPrice"]), 2)
-
-    async def _trailing_stop_update(self, deal, session, price, client):
-        updated = False
-        if deal.side == 'BUY':
-            max_price = getattr(deal, 'max_price', None) or deal.entry_price
-            if price > max_price:
-                print(
-                    f"[TRAILING] Новый максимум для лонга:\
-                        {price} (старый: {max_price})"
-                )
-                max_price = price
-                await self.repo.update_max_price(deal.id, max_price, session)
-                updated = True
-            else:
-                print(f"[TRAILING] Максимум для лонга не изменился: {max_price}")
-            new_stop = max_price * 0.998
-            stop_dir = "ниже max"
-        else:
-            min_price = getattr(deal, 'min_price', None) or deal.entry_price
-            if price < min_price:
-                print(
-                    f"[TRAILING] Новый минимум для шорта: {price}\
-                        (старый: {min_price})"
-                )
-                min_price = price
-                await self.repo.update_min_price(deal.id, min_price, session)
-                updated = True
-            else:
-                print(
-                    f"[TRAILING] Минимум для шорта не изменился: {min_price}"
-                )
-            new_stop = min_price * 1.002
-            stop_dir = "выше min"
-
-        if updated:
-            # Обновляем стоп лосс в базе
-            await self.repo.update_stop_loss(deal.id, new_stop, session)
-            
-            # Обновляем ордер стоп лосса на Binance
-            try:
-                await self.update_stop_loss_order(deal, session, client, new_stop)
-                print(f"[TRAILING] Стоп-лосс ордер обновлен на Binance: {new_stop:.4f}")
-            except Exception as e:
-                print(f"[TRAILING] Ошибка при обновлении стоп-лосс ордера: {e}")
-                # Если не удалось обновить ордер, все равно сохраняем в базе
-                await session.commit()
-            
-        return updated, new_stop, stop_dir
-
-    def _calculate_absolute_stop_loss(self, deal):
-        if isinstance(deal.stop_loss, float) and deal.stop_loss < 1:
-            if not deal.entry_price:
-                print(
-                    f"entry_price отсутствует,\
-                        расчет стоп-лосса невозможен для сделки {deal.id}"
-                )
-                return 0
-            return (
-                deal.entry_price * (1 - deal.stop_loss) if deal.side == 'BUY'
-                else deal.entry_price * (1 + deal.stop_loss)
-            )
-        else:
-            return deal.stop_loss
-
-    def _is_stop_loss_triggered(self, deal, price, stop_loss_price):
-        return (
-            deal.side == 'BUY' and price <= stop_loss_price or
-            deal.side == 'SELL' and price >= stop_loss_price
-        )
-
-    async def _close_deal_on_stop_loss(
-        self,
-        deal,
-        session,
-        client,
-        price,
-        stop_loss_price
-    ):
-        symbol_str = (
-            deal.symbol.value
-            if hasattr(deal.symbol, "value") 
-            else deal.symbol
-        )
-        positions = await client.futures_position_information(
-            symbol=symbol_str
-        )
-        position_amt = 0.0
-        for pos in positions:
-            if pos['symbol'] == deal.symbol:
-                position_amt = float(pos['positionAmt'])
-                break
-
-        print(f"[STOP-LOSS] Остаток позиции на Binance: {position_amt}")
-
-        deal_is_long = deal.side == 'BUY'
-        position_is_long = position_amt > 0
-        position_is_short = position_amt < 0
-        mark_price = await self._get_current_mark_price(client, symbol_str)
-        exit_price = mark_price
-        pnl = (
-            (exit_price - deal.entry_price) * deal.size if deal_is_long
-            else (deal.entry_price - exit_price) * deal.size
-        )
-        if (
-            abs(position_amt) < 1e-8
-            or (deal_is_long and position_is_short)
-            or (not deal_is_long and position_is_long)
-        ):
-            print(
-                f"Позиция уже закрыта или реверсирована на бирже,\
-                    сделка {deal.id} закрывается только в базе"
-            )
-            
-            await self.repo.close_deal(
-                deal.id,
-                session=session,
-                pnl=pnl,
-                exit_price=exit_price
-            )
-            if self.log_service:
-                strategy_name = await self._get_strategy_name(deal)
-                await self.log_service.add_log(
-                    StrategyLogCreate(
-                        user_id=deal.user_id,
-                        deal_id=deal.id,
-                        strategy=strategy_name,
-                        signal="stop_loss",
-                        comment=f"Сделка закрыта по стоп-лоссу без ордера на биржу (позиция отсутствует/реверсирована). Цена выхода: {exit_price}, PnL: {pnl:.2f}"
-                    ),
-                    session=session,
-                    autocommit=False
-                )
-            await session.commit()
-            return
-
-        close_side = 'SELL' if deal_is_long else 'BUY'
-        closing_order = await client.futures_create_order(
-            symbol=symbol_str,
-            side=close_side,
-            type='MARKET',
-            quantity=abs(position_amt),
-            reduceOnly=True
-        )
-        print(f"Сделка закрыта по стопу: exit_price={exit_price}, PnL={pnl}")
-        await self.repo.close_deal(
-            deal.id,
-            session=session,
-            pnl=pnl,
-            exit_price=exit_price
-        )
-        if self.log_service:
-            strategy_name = await self._get_strategy_name(deal)
-            await self.log_service.add_log(
-                StrategyLogCreate(
-                    user_id=deal.user_id,
-                    deal_id=deal.id,
-                    strategy=strategy_name,
-                    signal="stop_loss",
-                    comment=f"Сделка закрыта по стоп-лоссу. Цена выхода: {exit_price}, PnL: {pnl:.2f}"
-                ),
-                session=session,
-                autocommit=False
-            )
-        await session.commit()
-        print(f"Сделка {deal.id} закрыта в базе и коммитнута")
-        
 
     async def close_deal_manually(self, deal_id: int, session, apikeys_service):
         deal = await self.repo.get_by_id(deal_id, session)

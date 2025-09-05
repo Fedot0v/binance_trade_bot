@@ -11,6 +11,7 @@ from models.base import Base
 
 class Symbols(enum.Enum):
     BTCUSDT = "BTCUSDT"
+    ETHUSDT = "ETHUSDT"
 
 
 class Intervals(enum.Enum):

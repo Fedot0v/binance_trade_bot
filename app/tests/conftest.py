@@ -6,8 +6,9 @@ import numpy as np
 from datetime import datetime
 import os
 
-# Мокаем FERNET_KEY для тестов (32 байта в base64)
-os.environ["FERNET_KEY"] = "dGVzdC1mZXJuZXQta2V5LWZvci10ZXN0aW5nLW9ubHk="
+# Устанавливаем тестовый ключ только если он не установлен
+if "FERNET_KEY" not in os.environ:
+    os.environ["FERNET_KEY"] = "test-fernet-key-for-testing-only-not-for-production-use"
 
 from services.strategy_parameters import StrategyParameters
 from models.trade_models import Deal
@@ -36,7 +37,7 @@ def sample_strategy_params():
 
 @pytest.fixture
 def strategy_parameters():
-    return StrategyParameters({
+    return StrategyParameters(raw={
         "ema_fast": 10,
         "ema_slow": 30,
         "trend_threshold": 0.001,

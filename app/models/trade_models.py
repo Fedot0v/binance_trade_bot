@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Any
 import uuid
 
 from sqlalchemy import (
@@ -16,7 +15,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from models.base import Base
-from models.user_model import User
 
 
 class APIKeys(Base):
@@ -89,7 +87,7 @@ class StrategyLog(Base):
     signal: Mapped[str] = mapped_column(String, nullable=False)
     comment: Mapped[str] = mapped_column(Text)
     deal_id: Mapped[int] = mapped_column(ForeignKey('deals.id'), nullable=True)
-    user_id: Mapped[UUID] = mapped_column(
+    user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("users.id"),
         nullable=False
@@ -105,4 +103,4 @@ class StrategyConfig(Base):
     name: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[str] = mapped_column(Text, default="", nullable=True)
     is_active: Mapped[bool] = mapped_column(default=True)
-    parameters: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    parameters: Mapped[dict] = mapped_column(JSON, nullable=False)

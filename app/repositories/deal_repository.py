@@ -9,16 +9,19 @@ from repositories.base_repository import BaseRepository
 from models.trade_models import Deal
 
 
-class DealRepository(BaseRepository):
+class DealRepository(BaseRepository[Deal]):
+    def __init__(self, session):
+        super().__init__(session, Deal)
+
     async def add(self, user_id: int, **kwargs):
         deal = Deal(user_id=user_id, **kwargs)
-        self.db.add(deal)
-        await self.db.flush()
-        await self.db.refresh(deal)
+        self.session.add(deal)
+        await self.session.flush()
+        await self.session.refresh(deal)
         return deal
 
     async def get_all(self):
-        result = await self.db.execute(select(Deal))
+        result = await self.session.execute(select(self.model))
         return result.scalars().all()
 
     async def list_paginated(
@@ -27,52 +30,52 @@ class DealRepository(BaseRepository):
         limit: int,
         user_id: Optional[UUID] = None
     ):
-        stmt = select(Deal)
-        total_stmt = select(func.count()).select_from(Deal)
+        stmt = select(self.model)
+        total_stmt = select(func.count()).select_from(self.model)
 
         if user_id is not None:
-            stmt = stmt.where(Deal.user_id == user_id)
-            total_stmt = total_stmt.where(Deal.user_id == user_id)
+            stmt = stmt.where(self.model.user_id == user_id)
+            total_stmt = total_stmt.where(self.model.user_id == user_id)
 
-        stmt = stmt.order_by(desc(Deal.id)).offset(offset).limit(limit)
+        stmt = stmt.order_by(desc(self.model.id)).offset(offset).limit(limit)
 
-        items = (await self.db.execute(stmt)).scalars().all()
-        total = (await self.db.execute(total_stmt)).scalar_one()
+        items = (await self.session.execute(stmt)).scalars().all()
+        total = (await self.session.execute(total_stmt)).scalar_one()
 
         return items, total
 
     async def get_open_deals_for_user(self, user_id: int, symbol):
-        result = await self.db.execute(
-            select(Deal)
-            .where(Deal.status == 'open', Deal.user_id == user_id)
-            .where(Deal.symbol == symbol)
+        result = await self.session.execute(
+            select(self.model)
+            .where(self.model.status == 'open', self.model.user_id == user_id)
+            .where(self.model.symbol == symbol)
         )
         return result.scalars().all()
 
     async def get_last_deal(self, user_id: int):
-        result = await self.db.execute(
-            select(Deal)
-            .where(Deal.user_id == user_id)
-            .order_by(desc(Deal.id))
+        result = await self.session.execute(
+            select(self.model)
+            .where(self.model.user_id == user_id)
+            .order_by(desc(self.model.id))
             .limit(1)
         )
         return result.scalar_one_or_none()
 
     async def get_by_id(self, deal_id: int, session):
         result = await session.execute(
-            select(Deal)
-            .options(joinedload(Deal.template))
-            .where(Deal.id == deal_id)
+            select(self.model)
+            .options(joinedload(self.model.template))
+            .where(self.model.id == deal_id)
         )
         return result.scalar_one_or_none()
 
     async def get_open_deal_by_symbol(self, user_id: UUID, symbol: str):
-        result = await self.db.execute(
-            select(Deal)
+        result = await self.session.execute(
+            select(self.model)
             .where(
-                Deal.status == 'open',
-                Deal.user_id == user_id,
-                Deal.symbol == symbol
+                self.model.status == 'open',
+                self.model.user_id == user_id,
+                self.model.symbol == symbol
             )
         )
         return result.scalar_one_or_none()
@@ -92,34 +95,34 @@ class DealRepository(BaseRepository):
         if pnl is not None:
             values['pnl'] = pnl
         await session.execute(
-            update(Deal)
-            .where(Deal.id == deal_id)
+            update(self.model)
+            .where(self.model.id == deal_id)
             .values(**values)
         )
 
     async def get_open_deals(self, session):
         result = await session.execute(
-            select(Deal).where(Deal.status == 'open')
+            select(self.model).where(self.model.status == 'open')
         )
         return result.scalars().all()
 
     async def update_stop_loss(self, deal_id, new_stop_loss, session):
         await session.execute(
-            update(Deal).where(Deal.id == deal_id)
+            update(self.model).where(self.model.id == deal_id)
             .values(stop_loss=new_stop_loss)
         )
         await session.flush()
 
     async def update_stop_loss_order_id(self, deal_id, stop_loss_order_id, session):
         await session.execute(
-            update(Deal).where(Deal.id == deal_id)
+            update(self.model).where(self.model.id == deal_id)
             .values(stop_loss_order_id=stop_loss_order_id)
         )
         await session.flush()
 
     async def get_by_stop_loss_order_id(self, session, stop_loss_order_id):
         result = await session.execute(
-            select(Deal).where(Deal.stop_loss_order_id == stop_loss_order_id)
+            select(self.model).where(self.model.stop_loss_order_id == stop_loss_order_id)
         )
         return result.scalar_one_or_none()
 
@@ -131,7 +134,7 @@ class DealRepository(BaseRepository):
         status=None,
         closed_at=None
     ):
-        stmt = update(Deal).where(Deal.id == deal_id)
+        stmt = update(self.model).where(self.model.id == deal_id)
         update_data = {}
         if exit_price is not None:
             update_data['exit_price'] = exit_price
@@ -146,28 +149,28 @@ class DealRepository(BaseRepository):
 
     async def get_by_order_id(self, session, order_id):
         result = await session.execute(
-            select(Deal).where(Deal.order_id == order_id)
+            select(self.model).where(self.model.order_id == order_id)
         )
         return result.scalar_one_or_none()
 
     async def get_deals_for_bot(self, session, bot_id):
         result = await session.execute(
-            select(Deal).where(Deal.bot_id == bot_id)
+            select(self.model).where(self.model.bot_id == bot_id)
         )
         return result.scalars().all()
     
     async def delete_deal(self, deal_id, session):
         await session.execute(
-            delete(Deal).where(Deal.id == deal_id)
+            delete(self.model).where(self.model.id == deal_id)
         )
-        await session.flush()
+        await self.session.flush()
 
     async def update_max_price(self, deal_id, max_price, session):
         await session.execute(
-            update(Deal).where(Deal.id == deal_id).values(max_price=max_price)
+            update(self.model).where(self.model.id == deal_id).values(max_price=max_price)
         )
 
     async def update_min_price(self, deal_id, min_price, session):
         await session.execute(
-            update(Deal).where(Deal.id == deal_id).values(min_price=min_price)
+            update(self.model).where(self.model.id == deal_id).values(min_price=min_price)
         )

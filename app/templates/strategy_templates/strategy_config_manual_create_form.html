@@ -18,10 +18,14 @@
             <textarea name="parameters" rows="10" cols="70" placeholder='{
   "ema_fast": 10,
   "ema_slow": 30,
-  "trend_threshold": 0.002,
-  "risk_pct": 0.05,
-  "deposit_prct": 0.10
+  "trend_threshold": 0.2,
+  "risk_pct": 5,
+  "deposit_prct": 10,
+  "stop_loss_pct": 2,
+  "take_profit_pct": 3,
+  "trailing_stop_pct": 0.5
 }' required></textarea>
+            <small>Для Novichok стратегии: проценты вводятся как числа (2 = 2%, 0.5 = 0.5%)</small>
         </label>
         <button type="submit" class="button">Сохранить</button>
     </form>

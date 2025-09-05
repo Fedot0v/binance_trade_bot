@@ -309,7 +309,7 @@ class TestTradingIntegration:
     ):
         """Тест интеграции стратегии с реальными данными"""
         
-        params = StrategyParameters(sample_strategy_config.parameters)
+        params = StrategyParameters(raw=sample_strategy_config.parameters)
         
         strategy = NovichokStrategy(params)
         

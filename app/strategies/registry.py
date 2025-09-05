@@ -1,4 +1,5 @@
 from strategies.novichok_strategy import NovichokStrategy
+from strategies.compensation_strategy import CompensationStrategy
 
 
 REGISTRY = {
@@ -11,7 +12,28 @@ REGISTRY = {
             "ema_slow": 30,
             "trend_threshold": 0.002,
             "deposit_prct": 0.10,
-            "stop_loss_pct": 0.02
+            "stop_loss_pct": 0.02,
+            "trailing_stop_pct": 0.005
+        },
+        "is_active": True,
+    },
+    "compensation": {
+        "cls": CompensationStrategy,
+        "name": "CompensationStrategy",
+        "description": "Шаблон стратегии 'Компенсация и реакция' - основной актив BTC, страховка ETH",
+        "default_parameters": {
+            "ema_fast": 10,
+            "ema_slow": 30,
+            "trend_threshold": 0.001,
+            "btc_deposit_prct": 0.05,
+            "btc_stop_loss_pct": 0.012,
+            "eth_deposit_prct": 0.1,
+            "eth_stop_loss_pct": 0.01,
+            "compensation_threshold": 0.0025,
+            "compensation_time_window": 15,
+            "impulse_threshold": 0.004,
+            "candles_against_threshold": 2,
+            "max_trade_duration": 60
         },
         "is_active": True,
     },

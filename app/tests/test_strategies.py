@@ -11,7 +11,7 @@ from services.strategy_parameters import StrategyParameters
 class TestNovichokStrategy:
     @pytest.fixture
     def strategy_params(self):
-        return StrategyParameters({
+        return StrategyParameters(raw={
             "ema_fast": 10,
             "ema_slow": 30,
             "trend_threshold": 0.001,
@@ -85,7 +85,7 @@ class TestNovichokStrategy:
 
     def test_strategy_initialization_default_values(self):
         """Тест инициализации с дефолтными значениями"""
-        params = StrategyParameters({})
+        params = StrategyParameters(raw={})
         strategy = NovichokStrategy(params)
         
         assert strategy.ema_fast == 10  # дефолтное значение
@@ -199,7 +199,7 @@ class TestNovichokStrategy:
 
     def test_strategy_parameters_validation(self):
         """Тест валидации параметров стратегии"""
-        params = StrategyParameters({
+        params = StrategyParameters(raw={
             "ema_fast": -10,
             "ema_slow": 0,
             "trend_threshold": -0.001,
@@ -240,7 +240,7 @@ class TestBaseStrategy:
 class TestStrategyParameters:
     def test_strategy_parameters_get_int(self):
         """Тест получения целочисленных параметров"""
-        params = StrategyParameters({
+        params = StrategyParameters(raw={
             "test_int": 42,
             "test_string": "not_an_int"
         })
@@ -251,7 +251,7 @@ class TestStrategyParameters:
 
     def test_strategy_parameters_get_float(self):
         """Тест получения параметров с плавающей точкой"""
-        params = StrategyParameters({
+        params = StrategyParameters(raw={
             "test_float": 3.14,
             "test_int": 42
         })
@@ -267,7 +267,7 @@ class TestStrategyParameters:
             "ema_slow": 30,
             "trend_threshold": 0.001
         }
-        params = StrategyParameters(original_params)
+        params = StrategyParameters(raw=original_params)
         
         result_dict = params.as_dict()
         assert result_dict == original_params 

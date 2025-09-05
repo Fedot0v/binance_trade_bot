@@ -1,56 +1,271 @@
 {% extends "base.html" %}
 
+{% block head %}
+<!-- Стили для бэктеста -->
+<link rel="stylesheet" href="/static/css/backtest.css">
+{% endblock %}
+
 {% block content %}
-<h2>Бэктест стратегии</h2>
+<div class="backtest-container">
+    <div class="backtest-header">
+        <h2><i class="fas fa-rocket"></i> Бэктест стратегий</h2>
+        <p>Протестируйте торговые шаблоны стратегий на исторических данных</p>
 
-<form action="/backtest/run/" method="post" enctype="multipart/form-data">
-    <label for="template_id">Выберите шаблон стратегии:</label>
-    <select name="template_id" id="template_id">
-        {% for tpl in templates %}
-            <option value="{{ tpl.id }}">{{ tpl.template_name }}</option>
-        {% endfor %}
-    </select>
-    <br><br>
-    <label for="file">CSV-файл со свечами (TradingView: timestamp,open,high,low,close,volume):</label>
-    <input type="file" name="file" id="file" accept=".csv" required>
-    <br><br>
-    <p>
-        Перед запуском бэктеста скачайте CSV-файл свечей.<br>
-        Формат файла: <b>timestamp,open,high,low,close,volume</b>
-        <br>
-        Где скачать:<br>
-        • <a href="https://www.tradingview.com/chart/" target="_blank">TradingView</a> (правый клик → Export chart data)<br>
-        • <a href="https://www.cryptodatadownload.com/data/" target="_blank">cryptodatadownload.com</a> (раздел Crypto Exchanges)<br>
-        • <a href="https://www.kaggle.com/datasets" target="_blank">Kaggle</a> (поиск: "crypto candles csv")
-      </p>
-    <input type="submit" value="Запустить бэктест">
-</form>
+        <!-- Простая тестовая кнопка для проверки JavaScript -->
+        <button type="button" class="btn btn-warning btn-sm" onclick="alert('JavaScript работает!')" style="margin-top: 10px;">
+            <i class="fas fa-check"></i> Тест JavaScript
+        </button>
 
-{% if result %}
-<hr>
-<h3>Результаты бэктеста</h3>
-<p>Изначальный баланс: {{ result.initial_balance }}</p>
-<p>Финальный баланс: {{ result.final_balance }}</p>
-<p>Общий PnL: {{ result.total_pnl }}</p>
-<p>Всего сделок: {{ result.num_deals }}</p>
-<p>Профитных: {{ result.profitable_deals }} | Убыточных: {{ result.loss_deals }}</p>
-<p>Winrate: {{ "%.2f"|format(result.winrate) }}%</p>
-<h4>Сделки:</h4>
-<table border="1">
-    <tr>
-        <th>Вход</th><th>Выход</th><th>Сайд</th><th>PnL (%)</th><th>Статус</th><th>Время открытия</th><th>Время закрытия</th>
-    </tr>
-    {% for d in result.deals %}
-        <tr>
-            <td>{{ d.entry_price }}</td>
-            <td>{{ d.exit_price }}</td>
-            <td>{{ d.side }}</td>
-            <td>{{ "%.2f"|format(d.pnl_pct) }}</td>
-            <td>{{ d.status }}</td>
-            <td>{{ d.open_time }}</td>
-            <td>{{ d.close_time }}</td>
-        </tr>
-    {% endfor %}
-</table>
-{% endif %}
+        <!-- Кнопка для тестирования параметров шаблона -->
+        <button type="button" class="btn btn-info btn-sm" onclick="testTemplateParameters()" style="margin-top: 10px; margin-left: 10px;">
+            <i class="fas fa-bug"></i> Тест параметров
+        </button>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-danger">
+        <strong>Ошибка:</strong> {{ error }}
+    </div>
+    {% endif %}
+
+    <div class="modal fade" id="loadingModal" tabindex="-1" role="dialog" data-backdrop="static" data-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header border-0 bg-gradient">
+                    <h5 class="modal-title">
+                        <i class="fas fa-chart-line text-warning"></i>
+                        Выполняется бэктест стратегии
+                    </h5>
+                </div>
+                <div class="modal-body text-center">
+                    <div class="loading-spinner mb-4">
+                        <div class="spinner-border text-warning" role="status" style="width: 4rem; height: 4rem;">
+                            <span class="sr-only">Загрузка...</span>
+                        </div>
+                    </div>
+
+                    <h5 class="mt-3 text-light">Загружаем данные с Binance...</h5>
+                    <p class="text-muted mb-4">Скачиваем исторические данные для анализа</p>
+
+                    <div class="progress-container">
+                        <div class="progress mb-3" style="height: 12px; border-radius: 10px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated"
+                                 role="progressbar"
+                                 style="width: 0%; background: linear-gradient(90deg, #F0B90B 0%, #F8D90F 100%);"
+                                 aria-valuenow="0"
+                                 aria-valuemin="0"
+                                 aria-valuemax="100">
+                            </div>
+                        </div>
+                        <small class="text-muted">Прогресс: <span id="progressPercent">0</span>%</small>
+                    </div>
+
+                    <div class="loading-steps mt-4">
+                        <div class="step active" id="step1">
+                            <i class="fas fa-download text-success"></i>
+                            <span>Загрузка данных</span>
+                        </div>
+                        <div class="step" id="step2">
+                            <i class="fas fa-cogs text-info"></i>
+                            <span>Обработка данных</span>
+                        </div>
+                        <div class="step" id="step3">
+                            <i class="fas fa-chart-bar text-warning"></i>
+                            <span>Выполнение бэктеста</span>
+                        </div>
+                        <div class="step" id="step4">
+                            <i class="fas fa-calculator text-primary"></i>
+                            <span>Расчет статистики</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if result and result.task_id %}
+    <div class="alert alert-success mt-4">
+        <i class="fas fa-check-circle"></i> Бэктест успешно запущен в фоновом режиме!
+        <p><strong>ID задачи:</strong> {{ result.task_id }}</p>
+        <p>Вы можете отслеживать его статус и просматривать результаты здесь: <a href="/backtest/results/{{ result.task_id }}" class="alert-link">Просмотр результатов</a></p>
+    </div>
+    {% elif result and result.message %}
+        <div class="alert alert-info mt-4">
+            {{ result.message }}
+        </div>
+    {% endif %}
+
+    <form id="backtestForm" action="/backtest/run/" method="post" enctype="multipart/form-data">
+        <div class="row">
+            <div class="col-md-6">
+                <h4>Выбор шаблона стратегии</h4>
+                <div class="form-group">
+                    <label for="template_id">Шаблон стратегии:</label>
+                    <select name="template_id" id="template_id" class="form-control" required>
+                        <option value="">Выберите шаблон стратегии...</option>
+                        {% for template in templates %}
+                            <option value="{{ template.id }}" data-strategy-config-id="{{ template.strategy_config_id }}">{{ template.template_name }}</option>
+                        {% endfor %}
+                    </select>
+                    <small class="form-text text-muted">
+                        {% for template in templates %}
+                            <div id="desc-{{ template.id }}" class="template-desc" style="display: none;">
+                                <strong>{{ template.template_name }}:</strong> {{ template.description or 'Описание отсутствует' }}
+                            </div>
+                        {% endfor %}
+                    </small>
+                </div>
+
+                <div class="form-group">
+                    <label for="initial_balance">Начальный баланс ($):</label>
+                    <input type="number" name="initial_balance" id="initial_balance" class="form-control" value="10000" min="100" step="100" required>
+                </div>
+
+
+
+                <!-- Параметры шаблона стратегии -->
+                <div id="template-parameters-section" class="template-parameters-section" style="display: none;">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-cogs"></i> Параметры шаблона стратегии</h5>
+                            <small class="text-muted">Нажмите "Редактировать" чтобы изменить параметры перед запуском бэктеста</small>
+                        </div>
+                        <div class="card-body">
+                            <div id="template-parameters-display">
+                                <!-- Здесь будут отображаться параметры -->
+                            </div>
+
+                            <!-- Кнопка редактирования -->
+                            <div class="mt-3">
+                                <button type="button" class="btn btn-outline-primary btn-sm" id="edit-parameters-btn">
+                                    <i class="fas fa-edit"></i> Редактировать параметры
+                                </button>
+                            </div>
+
+                            <!-- Форма редактирования параметров (скрыта по умолчанию) -->
+                            <div id="template-parameters-edit" class="mt-3" style="display: none;">
+                                <div class="alert alert-warning">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    <strong>Внимание:</strong> Изменение параметров повлияет только на текущий бэктест. Параметры шаблона не будут сохранены.
+                                </div>
+
+                                <div id="parameters-form">
+                                    <!-- Здесь будут поля для редактирования -->
+                                </div>
+
+                                <div class="parameter-actions">
+                                    <button type="button" class="btn btn-success btn-sm" id="save-parameters-btn">
+                                        <i class="fas fa-save"></i> Применить изменения
+                                    </button>
+                                    <button type="button" class="btn btn-secondary btn-sm" id="cancel-edit-btn">
+                                        <i class="fas fa-times"></i> Отмена
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="col-md-6">
+                <h4>Параметры данных</h4>
+                <div class="form-group" id="symbol-group">
+                    <label for="symbol">Торговая пара:</label>
+                    <select name="symbol" id="symbol" class="form-control">
+                        <option value="">Выберите валюту...</option>
+                        {% for symbol in symbols %}
+                            <option value="{{ symbol }}">{{ symbol }}</option>
+                        {% endfor %}
+                    </select>
+                    <small class="form-text text-muted" id="symbol-info">
+                        <i class="fas fa-info-circle"></i> Данные загружаются с реального API Binance<br>
+                        <i class="fas fa-clock"></i> Интервал будет взят из выбранного шаблона стратегии<br>
+                        <i class="fas fa-exchange-alt"></i> Компенсационная стратегия автоматически загрузит BTC и ETH
+                    </small>
+                    <!-- Отладочная информация -->
+                    <div class="debug-info" style="font-size: 12px; color: #666; margin-top: 5px;">
+                        <strong>Debug:</strong> symbols = {{ symbols }}, count = {{ symbols|length }}
+                    </div>
+                </div>
+
+                <!-- Информация о компенсационной стратегии -->
+                <div id="compensation-info" class="alert alert-info" style="display: none;">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>Компенсационная стратегия:</strong> Для этой стратегии автоматически будут загружены данные по BTC и ETH. Выбор валюты не требуется.
+                </div>
+
+                <div class="form-group">
+                    <label for="start_date">Дата начала:</label>
+                    <input type="date" name="start_date" id="start_date" class="form-control" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="end_date">Дата окончания:</label>
+                    <input type="date" name="end_date" id="end_date" class="form-control" required>
+                </div>
+
+                <div class="alert alert-secondary mt-4" id="data-range-info" style="display:none;">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>Диапазон данных:</strong>
+                    <span id="btc-range"></span>
+                    <span id="eth-range" style="display:none;"></span>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-12 text-center">
+                <button type="submit" class="btn btn-primary btn-lg" id="runBacktestBtn">
+                    <i class="fas fa-play"></i> Запустить бэктест
+                </button>
+                <!-- Тестовая кнопка для проверки модального окна -->
+                <button type="button" class="btn btn-secondary btn-lg ml-2" id="testModalBtn" style="margin-left: 10px;">
+                    <i class="fas fa-eye"></i> Тест модального окна
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Подключаем стили и скрипты -->
+<script>
+    // Инициализация данных для BacktestManager
+    const templatesData = {{ templates_data|tojson }};
+    console.log('🔍 Данные шаблонов из backend:', templatesData);
+</script>
+
+<!-- JavaScript для бэктеста -->
+<script src="/static/js/backtest.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 JavaScript загружен и DOMContentLoaded сработал!');
+
+    // Данные шаблонов из backend
+    const templatesData = {{ templates_data|tojson }};
+    console.log('🔍 Данные шаблонов из backend:', templatesData);
+
+    // Передаем данные в BacktestManager
+    if (window.backtestManager) {
+        window.backtestManager.setTemplatesData(templatesData);
+    }
+
+    // Устанавливаем даты по умолчанию
+    const today = new Date();
+    const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    const startDateInput = document.getElementById('start_date');
+    const endDateInput = document.getElementById('end_date');
+
+    if (startDateInput) {
+        startDateInput.value = weekAgo.toISOString().split('T')[0];
+    }
+    if (endDateInput) {
+        endDateInput.value = today.toISOString().split('T')[0];
+    }
+});
+</script>
+
 {% endblock %}

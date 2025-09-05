@@ -14,5 +14,20 @@ class StrategyParameters:
         except (ValueError, TypeError):
             return default
 
+    def get_bool(self, key: str, default: bool = False) -> bool:
+        value = self.raw.get(key, default)
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, (int, float)):
+            return value != 0
+        if isinstance(value, str):
+            s = value.strip().lower()
+            if s in ("true", "1", "yes", "y", "on"):  # truthy strings
+                return True
+            if s in ("false", "0", "no", "n", "off"):  # falsy strings
+                return False
+            return default
+        return bool(value)
+
     def as_dict(self) -> dict:
         return self.raw

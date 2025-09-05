@@ -8,7 +8,23 @@
         <li><b>Описание:</b> {{ config.description or "—" }}</li>
         <li><b>Активна:</b> {{ "Да" if config.is_active else "Нет" }}</li>
         <li><b>Параметры:</b>
-            <pre class="strategy-json">{{ config.parameters | tojson(indent=2) }}</pre>
+            {% if should_show_percentage_format(config.parameters) %}
+                <!-- Параметры в процентном формате -->
+                <div class="strategy-params-any">
+                    <div class="params-grid">
+                        {% set formatted_params = format_params_for_display(config.parameters) %}
+                        {% for key, value in formatted_params.items() %}
+                            <div class="param-item">
+                                <span class="param-label">{{ key }}</span>
+                                <span class="param-value">{{ value }}</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% else %}
+                <!-- Параметры в обычном формате -->
+                <pre class="strategy-json">{{ config.parameters | tojson(indent=2) }}</pre>
+            {% endif %}
         </li>
     </ul>
     <div class="strategy-actions">

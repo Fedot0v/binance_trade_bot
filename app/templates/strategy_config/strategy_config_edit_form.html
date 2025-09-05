@@ -17,7 +17,15 @@
             </select>
         </label>
         <label>Параметры (JSON):
-            <textarea name="parameters" rows="7" required>{{ config.parameters | tojson(indent=2) }}</textarea>
+            {% if should_show_percentage_format(config.parameters) %}
+                <textarea name="parameters" rows="10" required>{% set formatted_params = format_params_for_display(config.parameters) %}
+{% for key, value in formatted_params.items() %}
+  "{{ key }}": {% if key in ['ema_fast', 'ema_slow'] %}{{ value }}{% else %}"{{ value }}"{% endif %}{% if not loop.last %},{% endif %}
+{% endfor %}</textarea>
+                <small><em>Процентные параметры показаны в процентах, но будут сохранены в долях</em></small>
+            {% else %}
+                <textarea name="parameters" rows="7" required>{{ config.parameters | tojson(indent=2) }}</textarea>
+            {% endif %}
         </label>
         <button type="submit" class="button">Сохранить</button>
     </form>

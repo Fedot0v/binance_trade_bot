@@ -26,7 +26,9 @@ from ui_routers import (
     ui_home_routers,
     ui_apikey_routers,
     ui_strategy_log,
-    ui_backtest_routers
+    ui_backtest_routers,
+    ui_backtest_results_router,
+    ui_backtest_history_router
 )
 
 
@@ -55,7 +57,6 @@ if os.path.exists(static_dir):
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 
-# app.include_router(user_settings_routers.router)
 app.include_router(apikeys_routers.router)
 app.include_router(deals_routers.router)
 app.include_router(trade_router.router)
@@ -72,6 +73,8 @@ app.include_router(ui_home_routers.router)
 app.include_router(ui_apikey_routers.router)
 app.include_router(ui_strategy_log.router)
 app.include_router(ui_backtest_routers.router)
+app.include_router(ui_backtest_results_router.router)
+app.include_router(ui_backtest_history_router.router)
 
 
 @app.get("/health")

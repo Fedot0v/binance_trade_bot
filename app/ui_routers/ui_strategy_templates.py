@@ -16,6 +16,7 @@ from dependencies.user_dependencies import fastapi_users
 from models.user_model import User, Symbols, Intervals
 from services.strategy_config_service import StrategyConfigService
 from encryption.crypto import decrypt
+from strategies.base_strategy import format_params_for_display, should_show_percentage_format, PERCENTAGE_PARAMS
 
 
 templates = Jinja2Templates(directory="app/templates")
@@ -38,6 +39,9 @@ async def strategy_template_list(
         "request": request,
         "templates": templates_,
         "current_user": user.id,
+        "format_params_for_display": format_params_for_display,
+        "should_show_percentage_format": should_show_percentage_format,
+        "percentage_params": PERCENTAGE_PARAMS
     })
 
 # Форма создания
@@ -55,6 +59,8 @@ async def strategy_template_create_form(
     intervals = [i.value for i in Intervals]
     if strategy_config_id:
         selected_parameters = await config_strategy_service.get_parameters(strategy_config_id)
+        # Параметры передаются как есть (в долях), проценты показываются динамически в шаблоне
+
     return templates.TemplateResponse("strategy_templates/strategy_template_create_form.html", {
         "request": request,
         "current_user": user,
@@ -63,6 +69,9 @@ async def strategy_template_create_form(
         "parameters": selected_parameters,
         "symbols": symbols,
         "intervals": intervals,
+        "format_params_for_display": format_params_for_display,
+        "should_show_percentage_format": should_show_percentage_format,
+        "percentage_params": PERCENTAGE_PARAMS
     })
 
 # Обработка формы создания
@@ -71,10 +80,11 @@ async def create_strategy_template(
     request: Request,
     template_name: str = Form(...),
     description: str = Form(None),
+    initial_balance: float = Form(None),
     leverage: float = Form(...),
     symbol: str = Form(...),
     interval: str = Form(...),
-    strategy_config_id: int = Form(...),
+    strategy_config_id: str = Form(""),  # Принимаем как строку, чтобы обработать "None"
     parameters: str = Form(None),  # Передавать JSON-строку если нужно
     service: UserStrategyTemplateService = Depends(get_strategy_template_service),
     session=Depends(get_session),
@@ -82,6 +92,32 @@ async def create_strategy_template(
 ):
     form = await request.form()
     params = {k[6:]: v for k, v in form.items() if k.startswith('param_')}
+
+    # Обрабатываем strategy_config_id
+    if strategy_config_id == "" or strategy_config_id == "None" or strategy_config_id is None:
+        strategy_config_id_int = None
+    else:
+        try:
+            strategy_config_id_int = int(strategy_config_id)
+        except (ValueError, TypeError):
+            strategy_config_id_int = None
+
+    # Конвертируем проценты обратно в доли при создании шаблона
+    if params and any(k in params for k in ['ema_fast', 'ema_slow']):
+        print(f"DEBUG: Создание шаблона с параметрами: {params}")
+        percentage_params = PERCENTAGE_PARAMS
+
+        for param in percentage_params:
+            if param in params and isinstance(params[param], (int, float, str)):
+                try:
+                    value = float(params[param])
+                    if value > 1:  # Если значение > 1, значит это проценты
+                        params[param] = value / 100  # Конвертируем в доли
+                except (ValueError, TypeError):
+                    pass  # Оставляем как есть, если не число
+
+        print(f"DEBUG: Параметры после конвертации: {params}")
+
     if not params:
         params = None
 
@@ -90,10 +126,11 @@ async def create_strategy_template(
     data = UserStrategyTemplateCreate(
         template_name=template_name,
         description=description,
+        initial_balance=initial_balance,
         leverage=leverage,
         symbol=symbol_enum,
         interval=interval_enum,
-        strategy_config_id=strategy_config_id,
+        strategy_config_id=strategy_config_id_int,
         parameters=params
     )
     await service.create(data, user.id, session)
@@ -111,7 +148,10 @@ async def strategy_template_detail(
     return templates.TemplateResponse("strategy_templates/strategy_template_detail.html", {
         "request": request,
         "template": template,
-        "current_user": user
+        "current_user": user,
+        "format_params_for_display": format_params_for_display,
+        "should_show_percentage_format": should_show_percentage_format,
+        "percentage_params": PERCENTAGE_PARAMS
     })
 
 # Форма редактирования
@@ -120,26 +160,27 @@ async def strategy_template_edit_form(
     request: Request,
     template_id: int,
     service: UserStrategyTemplateService = Depends(get_strategy_template_service),
-    config_strategy_service: StrategyConfigService = Depends(get_strategy_service),
-    user: User = Depends(current_active_user),
-    strategy_config_id: int = Query(None)
+    user: User = Depends(current_active_user)
 ):
-    strategies = await config_strategy_service.get_active()
-    selected_parameters = None
     symbols = [s.value for s in Symbols]
     intervals = [i.value for i in Intervals]
-    if strategy_config_id:
-        selected_parameters = await config_strategy_service.get_parameters(strategy_config_id)
+
+    # Получаем шаблон
     template = await service.get_by_id(template_id, user.id)
+
+    # Используем параметры шаблона
+    selected_parameters = template.parameters.copy() if template and template.parameters else None
+
     return templates.TemplateResponse("strategy_templates/strategy_template_edit_form.html", {
         "request": request,
         "current_user": user,
-        "strategies": strategies,
-        "strategy_config_id": strategy_config_id,
         "parameters": selected_parameters,
         "symbols": symbols,
         "intervals": intervals,
         "template": template,
+        "format_params_for_display": format_params_for_display,
+        "should_show_percentage_format": should_show_percentage_format,
+        "percentage_params": PERCENTAGE_PARAMS
     })
 
 # Обработка формы редактирования
@@ -149,11 +190,10 @@ async def edit_strategy_template(
     template_id: int,
     template_name: str = Form(...),
     description: str = Form(None),
-    deposit: float = Form(...),
+    initial_balance: float = Form(None),
     leverage: float = Form(...),
     symbol: str = Form(...),
     interval: str = Form(...),
-    strategy_config_id: int = Form(...),
     parameters: str = Form(None),
     service: UserStrategyTemplateService = Depends(get_strategy_template_service),
     session=Depends(get_session),
@@ -161,6 +201,26 @@ async def edit_strategy_template(
 ):
     form = await request.form()
     params = {k[6:]: v for k, v in form.items() if k.startswith('param_')}
+
+    # Получаем текущий шаблон, чтобы взять strategy_config_id из него
+    current_template = await service.get_by_id(template_id, user.id)
+
+    # Конвертируем проценты обратно в доли при сохранении
+    if params and any(k in params for k in ['ema_fast', 'ema_slow']):
+        print(f"DEBUG: Получены параметры для сохранения: {params}")
+        percentage_params = PERCENTAGE_PARAMS
+
+        for param in percentage_params:
+            if param in params and isinstance(params[param], (int, float, str)):
+                try:
+                    value = float(params[param])
+                    if value > 1:  # Если значение > 1, значит это проценты
+                        params[param] = value / 100  # Конвертируем в доли
+                except (ValueError, TypeError):
+                    pass  # Оставляем как есть, если не число
+
+        print(f"DEBUG: Параметры после конвертации: {params}")
+
     if not params:
         params = None
 
@@ -169,14 +229,14 @@ async def edit_strategy_template(
     data = UserStrategyTemplateCreate(
         template_name=template_name,
         description=description,
-        deposit=deposit,
+        initial_balance=initial_balance,
         leverage=leverage,
         symbol=symbol_enum,
         interval=interval_enum,
-        strategy_config_id=strategy_config_id,
+        strategy_config_id=current_template.strategy_config_id,  # Берем из текущего шаблона
         parameters=params
     )
-    await service.update(strategy_config_id, data, user.id, session)
+    await service.update(template_id, data, user.id, session)
     return RedirectResponse(f"/strategy-templates/list/", status_code=303)
 
 
