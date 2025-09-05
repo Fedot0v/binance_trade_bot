@@ -11,6 +11,7 @@ from models.trade_models import (
 )
 from models.user_model import User, UserStrategyTemplate, Intervals, Symbols
 from models.bot_model import UserBot
+from models.backtest_result_model import BacktestResultModel
 
 
 async def init_db():

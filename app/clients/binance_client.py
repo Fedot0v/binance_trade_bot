@@ -39,7 +39,7 @@ class BinanceClientFactory(ExchangeClientFactory):
             self.logger.info("Binance клиент успешно создан.")
             return client
         except Exception as e:
-            self.logger.error(f"Ошибка при создании Binance клиента: {str(e)}")
+            self.logger.exception(f"Ошибка при создании Binance клиента: {str(e)}")
             raise
 
     async def close(self, client: AsyncClient):

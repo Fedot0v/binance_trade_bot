@@ -52,7 +52,7 @@ class UserStrategyTemplateService:
                 detail=f"Ошибка при получении шаблона стратегии с ID {id_}: {str(e)}"
             )
 
-    async def get_all(self, user_id: int) -> list[UserStrategyTemplateRead]:
+    async def get_all(self, user_id: UUID) -> list[UserStrategyTemplateRead]:
         try:
             results = await self.repo.get_all(user_id)
             return [
@@ -120,7 +120,7 @@ class UserStrategyTemplateService:
     
     async def set_active(
         self,
-        user_id: int,
+        user_id: UUID,
         template_id: int,
         session,
         autocommit: bool = True

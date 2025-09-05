@@ -13,6 +13,10 @@ class OrderService:
         leverage=1,
         order_type="MARKET"
     ):
+        # Проверяем, что quantity корректный
+        if not quantity or quantity <= 0:
+            raise ValueError(f"Некорректное количество для ордера: {quantity}")
+        
         client = await self.client_factory.create(api_key, api_secret)
         try:
             await client.futures_change_leverage(

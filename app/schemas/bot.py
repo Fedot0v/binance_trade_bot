@@ -3,7 +3,7 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
-from app.models.trade_models import Symbols, Intervals
+from models.user_model import Symbols, Intervals
 
 
 class UserBotBase(BaseModel):

@@ -9,7 +9,7 @@ from services.strategy_parameters import StrategyParameters
 
 @pytest.fixture
 def sample_strategy_params():
-    return StrategyParameters({
+    return StrategyParameters(raw={
         "ema_fast": 10,
         "ema_slow": 30,
         "trend_threshold": 0.001,

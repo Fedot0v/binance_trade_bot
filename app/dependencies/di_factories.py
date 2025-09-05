@@ -14,6 +14,9 @@ from services.strategy_log_service import StrategyLogService
 from services.order_service import OrderService
 from services.balance_service import BalanceService
 from services.bot_service import UserBotService
+from services.backtest.backtest_service import BacktestService
+from services.strategy_manager import StrategyManager
+from services.backtest_result_service import BacktestResultService
 
 from repositories.strategy_repository import StrategyLogRepository
 from repositories.deal_repository import DealRepository
@@ -21,6 +24,7 @@ from repositories.apikeys_repository import APIKeysRepository
 from repositories.user_repository import UserStrategyTemplateRepository
 from repositories.strategy_config_repository import StrategyConfigRepository
 from repositories.bot_repository import UserBotRepository
+from repositories.backtest_result_repository import BacktestResultRepository
 
 from clients.client_factory import ExchangeClientFactory
 from clients.binance_client import BinanceClientFactory
@@ -54,6 +58,14 @@ get_strategy_service = get_service(
     StrategyConfigService,
     StrategyConfigRepository
 )
+
+
+def get_backtest_service(
+    strategy_config_service: StrategyConfigService = Depends(get_strategy_service)
+) -> BacktestService:
+    return BacktestService(strategy_config_service)
+
+
 get_apikeys_service = get_service(APIKeysService, APIKeysRepository)
 get_user_strategy_template_service = get_service(
     UserStrategyTemplateService,
@@ -64,6 +76,7 @@ get_strategy_log_service = get_service(
     StrategyLogRepository
 )
 get_userbot_service = get_service(UserBotService, UserBotRepository)
+get_backtest_result_service = get_service(BacktestResultService, BacktestResultRepository)
 
 
 def get_deal_service(
@@ -72,7 +85,16 @@ def get_deal_service(
     apikeys_service: APIKeysService = Depends(get_apikeys_service),
     log_service: StrategyLogService = Depends(get_strategy_log_service)
 ):
-    return DealService(repo, binance_client, apikeys_service, log_service)
+    # Создаем DealService без StrategyManager сначала
+    deal_service = DealService(repo, binance_client, apikeys_service, log_service)
+    
+    # Создаем StrategyManager с уже созданным DealService
+    strategy_manager = StrategyManager(deal_service, log_service)
+    
+    # Устанавливаем StrategyManager в DealService
+    deal_service.strategy_manager = strategy_manager
+    
+    return deal_service
 
 
 def get_marketdata_service(

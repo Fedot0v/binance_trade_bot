@@ -74,7 +74,6 @@ def periodic_trade_cycle(bot_id, user_id, symbol):
                 user_id=user_id_converted,
                 symbol=symbol,
                 session=session,
-                test_mode=False,
             )
         await engine.dispose()
 

@@ -24,6 +24,7 @@ class Intervals(str, Enum):
 class UserStrategyTemplateBase(BaseModel):
     template_name: str
     description: Optional[str] = None
+    initial_balance: Optional[float] = None
     leverage: float
     strategy_config_id: int
     parameters: Optional[dict] = None
@@ -38,8 +39,9 @@ class UserStrategyTemplateCreate(UserStrategyTemplateBase):
 class UserStrategyTemplateUpdate(BaseModel):
     template_name: Optional[str] = None
     description: Optional[str] = None
+    initial_balance: Optional[float] = None
     leverage: Optional[float] = None
-    strategy_config_id: Optional[int] = None
+    strategy_config_id: int
     parameters: Optional[dict] = None
     symbol: Symbols
     interval: Intervals
