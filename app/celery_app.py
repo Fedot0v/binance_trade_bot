@@ -7,7 +7,7 @@ celery_app = Celery(
     "binance_trade_bot",
     broker=os.environ.get("CELERY_BROKER_URL"),
     backend=os.environ.get("CELERY_BROKER_URL"),
-    include=["tasks.trade_tasks"]
+    include=["tasks.trade_tasks", "tasks.backtest_tasks"]
 )
 
 celery_app.conf.beat_schedule = {
