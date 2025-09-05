@@ -3,19 +3,6 @@
 {% block content %}
 <div class="template-form">
     <h2>Редактировать шаблон "{{ template.template_name }}"</h2>
-    <form method="get" action="/strategy-templates/{{ template.id }}/edit/" class="form-select-strategy">
-        <label>Стратегия:
-            <select name="strategy_config_id" required onchange="this.form.submit()">
-                <option value="">Выберите стратегию</option>
-                {% for strategy in strategies %}
-                    <option value="{{ strategy.id }}"
-                        {% if strategy_config_id and strategy.id == strategy_config_id|int %}selected{% endif %}
-                    >{{ strategy.name }}</option>
-                {% endfor %}
-            </select>
-        </label>
-        <noscript><button type="submit" class="button">Показать параметры</button></noscript>
-    </form>
     <form method="post" action="/strategy-templates/{{ template.id }}/edit/" class="form-main">
         <label>Название шаблона:
             <input type="text" name="template_name" value="{{ template.template_name }}" required>
@@ -26,7 +13,9 @@
         <label>Плечо:
             <input type="number" name="leverage" step="any" value="{{ template.leverage }}" required>
         </label>
-        <input type="hidden" name="strategy_config_id" value="{{ strategy_config_id }}">
+        <label>Стратегия:
+            <input type="text" value="{% if template.strategy_config_id %}ID: {{ template.strategy_config_id }}{% else %}Без стратегии{% endif %}" readonly disabled>
+        </label>
         <label>Тикер (symbol):
             <select name="symbol" required>
                 {% for s in symbols %}
@@ -43,14 +32,79 @@
         </label>
         {% if parameters %}
             <h4>Параметры стратегии:</h4>
+
             {% for key, value in parameters.items() %}
                 <label>{{ key }}:
-                    <input type="text" name="param_{{ key }}" value="{{ value }}">
+
+                    {% if key in percentage_params %}
+                        {# Показываем оба значения: в долях (для ввода) и в процентах (для понимания) #}
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <input type="text" name="param_{{ key }}" value="{{ value }}" style="flex: 1;" data-percentage-param="true">
+                            <span style="color: #F0B90B; font-weight: bold; white-space: nowrap;" data-percentage-display>
+                                {% if value is number %}
+                                    ({{ "%.1f"|format(value * 100) }}%)
+                                {% elif value %}
+                                    {% if '.' in value or value.replace('.', '').isdigit() %}
+                                        {% set num_value = value | float %}
+                                        ({{ "%.1f"|format(num_value * 100) }}%)
+                                    {% else %}
+                                        ({{ value }})
+                                    {% endif %}
+                                {% else %}
+                                    ({{ value }})
+                                {% endif %}
+                            </span>
+                        </div>
+                    {% else %}
+                        <input type="text" name="param_{{ key }}" value="{{ value }}">
+                    {% endif %}
                 </label>
             {% endfor %}
+            <small><em>Значения вводятся в долях (0.02 = 2%), рядом показаны проценты для удобства</em></small>
         {% endif %}
         <button type="submit" class="button">Сохранить</button>
     </form>
     <a href="/strategy-templates/list/" class="button-secondary">Назад к списку</a>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Находим все поля ввода с процентными параметрами
+    const percentageInputs = document.querySelectorAll('input[data-percentage-param="true"]');
+
+    percentageInputs.forEach(function(input) {
+        // Получаем соответствующий span для отображения процентов
+        const displaySpan = input.parentElement.querySelector('[data-percentage-display]');
+
+        // Функция для обновления отображения процентов
+        function updatePercentageDisplay() {
+            const value = input.value.trim();
+
+            if (value === '' || value === '0') {
+                displaySpan.textContent = '(0.0%)';
+                return;
+            }
+
+            // Проверяем, является ли значение числом
+            const numValue = parseFloat(value);
+            if (!isNaN(numValue)) {
+                const percentage = (numValue * 100).toFixed(1);
+                displaySpan.textContent = `(${percentage}%)`;
+            } else {
+                displaySpan.textContent = `(${value})`;
+            }
+        }
+
+        // Обновляем при изменении значения
+        input.addEventListener('input', updatePercentageDisplay);
+
+        // Обновляем при потере фокуса (для случаев копирования/вставки)
+        input.addEventListener('blur', updatePercentageDisplay);
+
+        // Инициализируем отображение для текущего значения
+        updatePercentageDisplay();
+    });
+});
+</script>
+
 {% endblock %}

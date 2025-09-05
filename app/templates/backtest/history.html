@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}История Бэктестов{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="/static/css/backtest.css">
+{% endblock %}
+
+{% block content %}
+<div class="backtest-container">
+    <div class="backtest-header">
+        <h2><i class="fas fa-history"></i> История Бэктестов</h2>
+        <p>Список всех ваших выполненных и текущих бэктестов.</p>
+    </div>
+
+    {% if backtests %}
+    <div class="table-responsive mt-4">
+        <table class="table table-striped table-hover backtest-history-table">
+            <thead>
+                <tr>
+                    <th>ID Задачи</th>
+                    <th>Шаблон</th>
+                    <th>Символ</th>
+                    <th>Начальный баланс</th>
+                    <th>Дата начала</th>
+                    <th>Дата окончания</th>
+                    <th>Статус</th>
+                    <th>Создан</th>
+                    <th>Завершен</th>
+                    <th>Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for bt in backtests %}
+                <tr>
+                    <td>{{ bt.task_id }}</td>
+                    <td>{{ bt.strategy_template_name or 'N/A' }}</td>
+                    <td>{{ bt.symbol }}</td>
+                    <td>${{ "{:,.2f}".format(bt.initial_balance | default(0)) }}</td>
+                    <td>{{ bt.start_date.strftime('%Y-%m-%d') if bt.start_date else 'N/A' }}</td>
+                    <td>{{ bt.end_date.strftime('%Y-%m-%d') if bt.end_date else 'N/A' }}</td>
+                    <td>
+                        {% if bt.status == 'completed' %}
+                            <span class="badge bg-success">Завершен</span>
+                        {% elif bt.status == 'failed' %}
+                            <span class="badge bg-danger">Ошибка</span>
+                        {% else %}
+                            <span class="badge bg-warning text-dark">{{ bt.status.capitalize() }}</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ bt.created_at.strftime('%Y-%m-%d %H:%M') if bt.created_at else 'N/A' }}</td>
+                    <td>{{ bt.completed_at.strftime('%Y-%m-%d %H:%M') if bt.completed_at else 'N/A' }}</td>
+                    <td>
+                        <a href="/backtest/results/{{ bt.task_id }}" class="btn btn-sm btn-info">
+                            <i class="fas fa-eye"></i> Просмотреть
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info mt-4">
+        У вас пока нет выполненных бэктестов. <a href="/backtest/run/" class="alert-link">Запустите первый бэктест</a>!
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

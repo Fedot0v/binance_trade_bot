@@ -15,11 +15,27 @@
             <div class="strategy-id"><b>ID:</b> {{ s.id }}</div>
             <div class="strategy-params">
                 <b>Параметры:</b>
-                <ul>
-                    {% for key, value in s.parameters.items() %}
-                        <li><b>{{ key }}</b>: {{ value }}</li>
-                    {% endfor %}
-                </ul>
+                {% if should_show_percentage_format(s.parameters) %}
+                    <!-- Параметры в процентном формате -->
+                    <div class="strategy-params-any">
+                        {% set formatted_params = format_params_for_display(s.parameters) %}
+                        <div class="params-grid">
+                            {% for key, value in formatted_params.items() %}
+                                <div class="param-item">
+                                    <span class="param-label">{{ key }}</span>
+                                    <span class="param-value">{{ value }}</span>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% else %}
+                    <!-- Параметры в обычном формате -->
+                    <ul>
+                        {% for key, value in s.parameters.items() %}
+                            <li><b>{{ key }}</b>: {{ value }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
             </div>
             <div class="strategy-actions">
                 <a href="/strategy-config/{{ s.id }}" class="button-small">Подробнее</a>
@@ -29,4 +45,20 @@
         {% endfor %}
     </div>
 </div>
+
+<style>
+.novichok-params-compact {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.25rem;
+    font-size: 0.9rem;
+}
+
+.novichok-params-compact div {
+    background-color: #f8f9fa;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    border: 1px solid #dee2e6;
+}
+</style>
 {% endblock %}

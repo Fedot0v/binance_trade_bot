@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block head %}
+<!-- Стили для бэктеста -->
+<link rel="stylesheet" href="/static/css/backtest.css">
+{% endblock %}
+
+{% block content %}
+<div class="backtest-container">
+    <div class="backtest-header">
+        <h2><i class="fas fa-flask"></i> Тестовая страница</h2>
+        <p>Тестирование новой frontend структуры</p>
+
+        <!-- Кнопки тестирования -->
+        <button type="button" class="btn btn-warning btn-sm" onclick="alert('JavaScript работает!')" style="margin-top: 10px;">
+            <i class="fas fa-check"></i> Тест JavaScript
+        </button>
+
+        <button type="button" class="btn btn-info btn-sm" onclick="testTemplateParameters()" style="margin-top: 10px; margin-left: 10px;">
+            <i class="fas fa-bug"></i> Тест параметров
+        </button>
+
+        <button type="button" class="btn btn-success btn-sm" onclick="testBacktestManager()" style="margin-top: 10px; margin-left: 10px;">
+            <i class="fas fa-cogs"></i> Тест BacktestManager
+        </button>
+    </div>
+
+    <!-- Секция для тестирования параметров -->
+    <div id="template-parameters-section" class="template-parameters-section" style="display: block;">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-cogs"></i> Тест параметров шаблона</h5>
+            </div>
+            <div class="card-body">
+                <div id="template-parameters-display">
+                    <p>Здесь будут отображаться параметры шаблона</p>
+                </div>
+
+                <button type="button" class="btn btn-outline-primary btn-sm" id="edit-parameters-btn">
+                    <i class="fas fa-edit"></i> Редактировать параметры
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Консоль для отладки -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5><i class="fas fa-terminal"></i> Консоль отладки</h5>
+        </div>
+        <div class="card-body">
+            <div id="debug-console" style="background: #f8f9fa; padding: 10px; border-radius: 5px; font-family: monospace; min-height: 200px; max-height: 400px; overflow-y: auto;">
+                <div>Ожидание загрузки JavaScript...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Подключаем стили и скрипты -->
+<script>
+    // Инициализация данных для BacktestManager
+    const templatesData = {{ templates_data|tojson }};
+    console.log('🔍 Тестовая страница: данные шаблонов загружены:', templatesData);
+</script>
+
+<!-- JavaScript для бэктеста -->
+<script src="/static/js/backtest.js"></script>
+<script src="/static/js/test.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Тестовая страница загружена!');
+
+    // Данные шаблонов из backend
+    const templatesData = {{ templates_data|tojson }};
+    console.log('🔍 Данные шаблонов из backend:', templatesData);
+
+    // Передаем данные в BacktestManager
+    if (window.backtestManager) {
+        window.backtestManager.setTemplatesData(templatesData);
+
+        // Добавляем тестовую информацию в консоль
+        addToDebugConsole('✅ BacktestManager инициализирован');
+        addToDebugConsole('📊 Загружено шаблонов: ' + templatesData.length);
+    } else {
+        addToDebugConsole('❌ BacktestManager не найден');
+    }
+
+    // Проверяем доступность функций
+    if (typeof window.testTemplateParameters === 'function') {
+        addToDebugConsole('✅ testTemplateParameters доступна');
+    } else {
+        addToDebugConsole('❌ testTemplateParameters не найдена');
+    }
+});
+
+// Функция для добавления сообщений в отладочную консоль
+function addToDebugConsole(message) {
+    const consoleDiv = document.getElementById('debug-console');
+    if (consoleDiv) {
+        const timestamp = new Date().toLocaleTimeString();
+        consoleDiv.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+        consoleDiv.scrollTop = consoleDiv.scrollHeight;
+    }
+}
+
+// Переопределяем console.log для отображения в консоли страницы
+const originalConsoleLog = console.log;
+console.log = function(...args) {
+    originalConsoleLog.apply(console, args);
+
+    // Добавляем в отладочную консоль страницы
+    const message = args.map(arg =>
+        typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+    ).join(' ');
+
+    addToDebugConsole(message);
+};
+
+// Функция для тестирования BacktestManager
+window.testBacktestManager = function() {
+    console.log('🧪 Запуск теста BacktestManager');
+
+    if (window.backtestManager) {
+        console.log('✅ BacktestManager найден');
+        console.log('📊 Данные шаблонов:', window.backtestManager.templatesData);
+        console.log('🔧 Методы:', Object.getOwnPropertyNames(Object.getPrototypeOf(window.backtestManager)));
+
+        addToDebugConsole('✅ Тест BacktestManager пройден успешно');
+    } else {
+        console.log('❌ BacktestManager не найден');
+        addToDebugConsole('❌ BacktestManager не найден');
+    }
+};
+</script>
+
+{% endblock %}

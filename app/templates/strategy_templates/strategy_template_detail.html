@@ -9,7 +9,23 @@
         <li><b>Плечо:</b> {{ template.leverage }}</li>
         <li><b>Описание:</b> {{ template.description or "—" }}</li>
         <li><b>Параметры:</b>
-            <pre class="template-json">{{ template.parameters|tojson(indent=2) }}</pre>
+            {% if should_show_percentage_format(template.parameters) %}
+                <!-- Параметры в процентном формате -->
+                <div class="strategy-params-any">
+                    <div class="params-grid">
+                        {% set formatted_params = format_params_for_display(template.parameters) %}
+                        {% for key, value in formatted_params.items() %}
+                            <div class="param-item">
+                                <span class="param-label">{{ key }}</span>
+                                <span class="param-value">{{ value }}</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% else %}
+                <!-- Параметры в обычном формате -->
+                <pre class="template-json">{{ template.parameters|tojson(indent=2) }}</pre>
+            {% endif %}
         </li>
     </ul>
     <div class="template-actions">
@@ -17,4 +33,34 @@
         <a href="/strategy-templates/list/?user_id={{ template.user_id }}" class="button-secondary">Назад к списку</a>
     </div>
 </div>
+
+<style>
+.novichok-params {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 1rem;
+    margin: 0.5rem 0;
+}
+
+.param-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+    padding: 0.25rem 0;
+}
+
+.param-row:last-child {
+    margin-bottom: 0;
+}
+
+.param-row span {
+    flex: 1;
+    text-align: left;
+}
+
+.param-row span:first-child {
+    margin-right: 1rem;
+}
+</style>
 {% endblock %}

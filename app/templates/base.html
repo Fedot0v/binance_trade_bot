@@ -2,8 +2,16 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Novichok++ Бот{% endblock %}</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <!-- Bootstrap 5.3.2 (последняя стабильная версия) -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css?v=4.7">
+    <!-- Popper.js для Bootstrap 5 -->
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
+    <!-- Bootstrap 5.3.2 JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.min.js"></script>
     {% block head %}{% endblock %}
 </head>
 <body>
@@ -18,6 +26,7 @@
             <a href="/trade/ui/hub/">💰 Торговый бот</a>
             <a href="/logs/">🗒️ Логи</a>
             <a href="/backtest/run/">🔍 Бэктест стратегии</a>
+            <a href="/backtest/history/">📜 История бэктестов</a>
             <!-- Добавляй любые другие роутеры -->
         </nav>
         <div class="main">

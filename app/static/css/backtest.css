@@ -1,0 +1,291 @@
+/* Стили для параметров шаблона в бэктесте */
+
+/* Основная секция параметров */
+.template-parameters-section {
+    margin-top: 2rem;
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+    background-color: #f8f9fa;
+}
+
+.template-parameters-section .card-header {
+    background: linear-gradient(135deg, #4a90e2 0%, #82b1ff 100%); /* Более мягкий синий градиент */
+    color: white;
+    border-radius: 0.5rem 0.5rem 0 0 !important;
+}
+
+.template-parameters-section .card-body {
+    padding: 1.5rem;
+}
+
+/* Элементы параметров */
+.parameter-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    background: white;
+    border-radius: 0.375rem;
+    margin-bottom: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); /* Чуть менее выраженная тень */
+}
+
+.parameter-item:last-child {
+    margin-bottom: 0;
+}
+
+.parameter-label {
+    font-weight: 500; /* Немного уменьшим жирность */
+    color: #343a40; /* Более темный, четкий цвет текста */
+    font-size: 0.95rem;
+}
+
+.parameter-value {
+    font-family: 'SFMono-Regular', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+    background-color: #e2e6ea; /* Светло-серый фон */
+    color: #212529; /* Темный цвет текста для читаемости */
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.25rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+/* Форма редактирования */
+.parameter-edit-form {
+    background: white;
+    border-radius: 0.375rem;
+    padding: 1rem;
+    margin-top: 1rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.parameter-edit-form .alert {
+    margin-bottom: 1rem;
+}
+
+.parameter-edit-form .form-group {
+    margin-bottom: 1rem;
+}
+
+.parameter-edit-form .form-control {
+    border-radius: 0.375rem;
+    border: 1px solid #ced4da;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.parameter-edit-form .form-control:focus {
+    border-color: #80bdff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.parameter-edit-form .form-text {
+    font-size: 0.875rem;
+    color: #6c757d;
+    margin-top: 0.25rem;
+}
+
+/* Кнопки управления */
+.parameter-actions {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 2px solid #dee2e6;
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+}
+
+.parameter-actions .btn {
+    min-width: 120px;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .parameter-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    .parameter-label {
+        font-size: 0.9rem;
+    }
+
+    .parameter-value {
+        font-size: 0.85rem;
+        align-self: flex-end;
+    }
+
+    .parameter-actions {
+        flex-direction: column;
+    }
+
+    .parameter-actions .btn {
+        width: 100%;
+    }
+}
+
+/* Темная тема (опционально) */
+@media (prefers-color-scheme: dark) {
+    .backtest-container {
+        color: #e9ecef; /* Общий цвет текста для всего контейнера */
+    }
+
+    .template-parameters-section {
+        background-color: #212529; /* Темно-серый фон */
+        border-color: #495057;
+    }
+
+    .parameter-item {
+        background: #2d343a; /* Чуть светлее, чем основной фон */
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+    }
+
+    .parameter-label {
+        color: #e9ecef;
+    }
+
+    .parameter-value {
+        background-color: #495057;
+        color: #e9ecef;
+    }
+
+    .parameter-edit-form {
+        background: #2d343a;
+    }
+
+    .backtest-history-table thead th {
+        background-color: #343a40;
+        color: #e9ecef !important; /* Устанавливаем белый цвет текста для заголовков */
+        border-bottom-color: #495057;
+    }
+
+    .backtest-history-table tbody tr {
+        background-color: #2d343a;
+        border-radius: 0.3em;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+        margin-bottom: 0.5em;
+    }
+
+    .backtest-history-table tbody tr:hover {
+        background-color: #495057;
+    }
+
+    .backtest-history-table tbody td {
+        color: #e9ecef !important; /* Устанавливаем белый цвет текста для ячеек */
+    }
+}
+
+/* Стили для таблицы истории бэктестов */
+.backtest-history-table thead th {
+    background-color: #f2f2f2; /* Светлый фон для заголовков таблицы */
+    color: #333; /* Темный цвет текста */
+    font-weight: 600;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.backtest-history-table tbody tr {
+    background-color: white; /* Светлый фон для строк таблицы */
+    border-radius: 0.3em; /* Скругленные углы для строк */
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    margin-bottom: 0.5em; /* Отступ между строками */
+    border: 1px solid #e0e0e0; /* Легкая граница */
+}
+
+.backtest-history-table tbody tr:hover {
+    background-color: #f8f9fa; /* Цвет при наведении */
+}
+
+.backtest-history-table tbody td {
+    color: #333; /* Темный цвет текста для содержимого таблицы */
+}
+
+.backtest-history-table .badge {
+    font-size: 0.85em;
+    padding: 0.4em 0.6em;
+    border-radius: 0.3em;
+}
+
+/* Адаптивность для таблицы */
+@media (max-width: 992px) {
+    .backtest-history-table th, .backtest-history-table td {
+        font-size: 0.85rem;
+        padding: 0.5rem;
+    }
+}
+
+/* Динамические проценты в форме редактирования */
+.parameter-edit-form [data-percentage-display] {
+    color: #F0B90B;
+    font-weight: bold;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    min-width: 70px;
+    text-align: right;
+    transition: color 0.2s ease;
+}
+
+.parameter-edit-form .form-control[data-percentage-param="true"] {
+    flex: 1;
+}
+
+/* Контейнер для поля и процентов */
+.parameter-edit-form .parameter-input-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.parameter-edit-form .parameter-input-container input {
+    flex: 1;
+}
+
+.parameter-edit-form .parameter-input-container span {
+    min-width: 70px;
+}
+
+/* Динамические проценты в форме редактирования */
+@media (prefers-color-scheme: dark) {
+    .template-parameters-section {
+        background-color: #212529; /* Темно-серый фон */
+        border-color: #495057;
+    }
+
+    .parameter-item {
+        background: #2d343a; /* Чуть светлее, чем основной фон */
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+
+    .parameter-label {
+        color: #e9ecef; /* Светлый цвет текста */
+    }
+
+    .parameter-value {
+        background-color: #495057; /* Более темный фон для значений */
+        color: #e9ecef; /* Светлый цвет текста */
+    }
+
+    .parameter-edit-form {
+        background: #2d343a;
+    }
+
+    .backtest-history-table thead th {
+        background-color: #343a40; /* Темный фон для заголовков таблицы */
+        color: #e9ecef; /* Светлый цвет текста */
+        border-bottom-color: #495057;
+    }
+
+    .backtest-history-table tbody tr {
+        background-color: #2d343a; /* Темный фон для строк таблицы */
+        border-radius: 0.3em; /* Скругленные углы для строк */
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+        margin-bottom: 0.5em; /* Отступ между строками */
+    }
+
+    .backtest-history-table tbody tr:hover {
+        background-color: #495057; /* Цвет при наведении */
+    }
+
+    .backtest-history-table tbody td {
+        color: #e9ecef; /* Белый цвет текста для содержимого таблицы */
+    }
+}
