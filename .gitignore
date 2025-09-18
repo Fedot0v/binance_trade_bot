@@ -3,24 +3,18 @@
 __pycache__/
 *.pyc
 
-# Ignore everything at repo root by default
 /*
-# Keep Git ignore file
 !.gitignore
-# Keep app directory
 !/app/
-# Keep docker/docker-compose files
 !docker-compose.yml
 !docker-compose.local.yml
 !Dockerfile
 !Dockerfile.beat
 !Dockerfile.worker
-# Keep dockerignore if present
 !.dockerignore
-# Keep requirements.txt
 !requirements.txt
-
-# Re-ignore Python cache within app and elsewhere
+!README.md
+e
 **/__pycache__/
 *.py[cod]
 *.pyo
