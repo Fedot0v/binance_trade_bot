@@ -1,4 +1,35 @@
 .env
 /venv
-*.__pycache__
+__pycache__/
 *.pyc
+
+# Ignore everything at repo root by default
+/*
+# Keep Git ignore file
+!.gitignore
+# Keep app directory
+!/app/
+# Keep docker/docker-compose files
+!docker-compose.yml
+!docker-compose.local.yml
+!Dockerfile
+!Dockerfile.beat
+!Dockerfile.worker
+# Keep dockerignore if present
+!.dockerignore
+# Keep requirements.txt
+!requirements.txt
+
+# Re-ignore Python cache within app and elsewhere
+**/__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Ignore virtualenvs anywhere
+venv/
+.venv/
+
+# Common OS cruft
+.DS_Store
+Thumbs.db
