@@ -20,10 +20,8 @@ e
 *.pyo
 *.pyd
 
-# Ignore virtualenvs anywhere
 venv/
 .venv/
 
-# Common OS cruft
 .DS_Store
 Thumbs.db
