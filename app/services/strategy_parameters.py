@@ -29,5 +29,9 @@ class StrategyParameters:
             return default
         return bool(value)
 
+    def get_str(self, key: str, default: str = "") -> str:
+        value = self.raw.get(key, default)
+        return str(value) if value is not None else default
+
     def as_dict(self) -> dict:
         return self.raw

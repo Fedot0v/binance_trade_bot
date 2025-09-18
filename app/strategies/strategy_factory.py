@@ -4,6 +4,7 @@ from strategies.base_strategy import BaseStrategy
 from services.strategy_parameters import StrategyParameters
 from strategies.novichok_adapter import NovichokAdapter
 from strategies.compensation_adapter import CompensationAdapter
+from services.deal_service import DealService # Импортируем DealService
 
 
 STRATEGY_REGISTRY = {
@@ -30,24 +31,19 @@ def make_strategy(strategy_name: str, template) -> object:
     """
     name = (strategy_name or "novichok").lower()
     
-    # Безопасно извлекаем параметры из template
     if hasattr(template, 'parameters') and template.parameters:
         parameters = template.parameters
 
-        # Если это уже словарь - используем как есть
         if isinstance(parameters, dict):
             params = parameters
-        # Если это SimpleNamespace или другой объект с __dict__
         elif hasattr(parameters, '__dict__'):
             params = parameters.__dict__
-        # Если это строка (JSON) - пытаемся распарсить
         elif isinstance(parameters, str):
             try:
                 import json
                 params = json.loads(parameters)
             except (json.JSONDecodeError, TypeError):
                 params = {}
-        # Если это итерируемый объект (но не строка)
         elif hasattr(parameters, '__iter__') and not isinstance(parameters, str):
             try:
                 params = dict(parameters)
@@ -58,17 +54,35 @@ def make_strategy(strategy_name: str, template) -> object:
     else:
         params = {}
     
+    # Создаем фиктивный DealService для бэктеста, так как реальный сервис не нужен
+    class MockDealService(DealService):
+        def __init__(self):
+            pass
+
+        async def open_position(self, symbol: str, side: str, amount: float, leverage: int = 1, deal_id: int = None):
+            print(f"[MockDealService] Открытие позиции {side} {amount} {symbol}")
+            return {"orderId": "mock_order_id", "price": 100.0, "qty": amount}
+
+        async def close_position(self, symbol: str, side: str, deal_id: int):
+            print(f"[MockDealService] Закрытие позиции {side} {symbol}")
+            return {"orderId": "mock_close_order_id", "price": 100.0, "qty": 0.0}
+
+        async def get_open_positions(self):
+            return []
+        
+        async def get_klines(self, symbol: str, interval: str, limit: int = 500):
+            return []
+
+    mock_deal_service = MockDealService()
+
     if name == "novichok":
-        # Используем уже подготовленные params
         print(f"🧠 Создание NovichokStrategy с параметрами: {params}")
         legacy = NovichokStrategy(StrategyParameters(raw=params))
         return NovichokAdapter(legacy)
     elif name == "compensation":
-        # Используем уже подготовленные params
         print(f"🧠 Создание CompensationStrategy с параметрами: {params}")
-        legacy = CompensationStrategy(StrategyParameters(raw=params))
-        adapter = CompensationAdapter(legacy, None)  # deal_service = None для бэктеста
+        legacy = CompensationStrategy(StrategyParameters(raw={**params, "interval": template.interval}))
+        adapter = CompensationAdapter(legacy, template, mock_deal_service)
         return adapter
     else:
-        # Ошибка для неизвестных стратегий
         raise ValueError(f"Strategy '{name}' not found")
