@@ -25,6 +25,14 @@
             {% else %}
                 <!-- Параметры в обычном формате -->
                 <pre class="template-json">{{ template.parameters|tojson(indent=2) }}</pre>
+                {% if template.parameters and 'eth_compensation_opposite' in template.parameters %}
+                    <div class="novichok-params">
+                        <div class="param-row">
+                            <span>eth_compensation_opposite</span>
+                            <span>{{ 'True' if template.parameters['eth_compensation_opposite'] else 'False' }}</span>
+                        </div>
+                    </div>
+                {% endif %}
             {% endif %}
         </li>
     </ul>

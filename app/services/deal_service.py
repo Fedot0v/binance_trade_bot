@@ -1,5 +1,7 @@
 from uuid import UUID
 from typing import Optional
+from decimal import Decimal, ROUND_HALF_UP
+import pandas as pd
 
 from fastapi import HTTPException, Depends
 
@@ -146,7 +148,15 @@ class DealService:
             )
             return
 
-        print(f"API-ключ (частично скрыт): {keys.api_key_encrypted[:6]}***")
+        # Безопасная диагностика ключей (без утечек секрета)
+        try:
+            secret_len = len(keys.api_secret_encrypted) if keys.api_secret_encrypted else 0
+            looks_encrypted = str(keys.api_secret_encrypted).startswith("gAAAA") if keys.api_secret_encrypted else False
+            print(
+                f"API-ключ (частично скрыт): {keys.api_key_encrypted[:6]}*** | secret_len={secret_len} | looks_encrypted={looks_encrypted}"
+            )
+        except Exception:
+            pass
         client_testnet_status = self.binance_client.testnet
         print(
             f"API-ключ найден для user_id={deal.user_id},\
@@ -156,12 +166,12 @@ class DealService:
             keys.api_key_encrypted, keys.api_secret_encrypted, testnet=client_testnet_status
         )
         try:
-            await self._sync_deal_with_binance(deal, session, client)
+            await self._sync_deal_with_binance(deal, session, client, keys=keys)
         finally:
             await self.binance_client.close(client)
             print(f"Бинанс-клиент закрыт для user_id={deal.user_id}")
 
-    async def _sync_deal_with_binance(self, deal, session, client):
+    async def _sync_deal_with_binance(self, deal, session, client, keys=None):
         symbol = (
             deal.symbol.value
             if hasattr(deal.symbol, "value")
@@ -196,23 +206,76 @@ class DealService:
             if deal.stop_loss_order_id:
                 await self.cancel_stop_loss_order(deal, session, client)
             
-            await self.repo.close_deal(deal.id, session)
+            await self.repo.close_deal(deal.id, session=session)
             await session.commit()
             print(
                 f"Сделка {deal.id} помечена как закрытая (по статусу Binance)"
             )
             return
 
+        # Дополнительно сверяем фактическую позицию на Binance. Если позиции нет или она реверсирована, закрываем сделку в базе
+        try:
+            positions = await client.futures_position_information(symbol=symbol)
+            position_amt = 0.0
+            for pos in positions:
+                if pos.get('symbol') == symbol:
+                    position_amt = float(pos.get('positionAmt', 0.0))
+                    break
+
+            print(f"[SYNC] Остаток позиции на Binance по {symbol}: {position_amt}")
+
+            deal_is_long = deal.side == 'BUY'
+            position_is_long = position_amt > 0
+            position_is_short = position_amt < 0
+
+            if abs(position_amt) < 1e-8:
+                print(
+                    f"[SYNC] Позиция отсутствует или реверсирована на Binance — закрываем сделку {deal.id} в базе"
+                )
+                if deal.stop_loss_order_id:
+                    await self.cancel_stop_loss_order(deal, session, client)
+
+                await self.repo.close_deal(deal.id, session=session)
+
+                if self.log_service:
+                    try:
+                        strategy_name = await self._get_strategy_name(deal)
+                        await self.log_service.add_log(
+                            StrategyLogCreate(
+                                user_id=deal.user_id,
+                                deal_id=deal.id,
+                                strategy=strategy_name,
+                                signal="auto_close_no_position",
+                                comment="Сделка автоматически закрыта: на Binance отсутствует соответствующая позиция (позиция закрыта/реверсирована)."
+                            ),
+                            session=session,
+                            autocommit=False
+                        )
+                    except Exception as e:
+                        print(f"Ошибка логирования авто-закрытия сделки: {e}")
+
+                await session.commit()
+                return
+            else:
+                # Если направление позиции на бирже не совпадает с направлением сделки — не закрываем, ждём стоп-лосс
+                if (deal_is_long and position_is_short) or (not deal_is_long and position_is_long):
+                    print("[SYNC] Направление позиции на Binance не совпадает с направлением сделки — не закрываем, ожидаем стоп-лосс.")
+                # Иначе направление совпадает — продолжаем работу как обычно
+        except Exception as e:
+            print(f"[SYNC] Ошибка при проверке позиции на Binance: {e}")
+
         # Если есть StrategyManager, используем его для trailing stop
         if self.strategy_manager:
+            print("[STRATEGY_MANAGER] Доступен StrategyManager — запускаем обновление трейлинг-стопов и проверку выходов")
             try:
                 # Получаем рыночные данные для trailing stop
                 from services.marketdata_service import MarketDataService
-                marketdata_service = MarketDataService()
+                marketdata_service = MarketDataService(self.binance_client)
                 
                 # Получаем данные для символа сделки
                 klines = await marketdata_service.get_klines(
-                    keys.api_key_encrypted, keys.api_secret_encrypted,
+                    keys.api_key_encrypted if keys else None,
+                    keys.api_secret_encrypted if keys else None,
                     symbol=symbol, interval="1m", limit=1
                 )
                 if klines:
@@ -224,10 +287,14 @@ class DealService:
                     df['close'] = df['close'].astype(float)
                     
                     market_data = {symbol: df}
+                    print(f"[STRATEGY_MANAGER] Передаём market_data для {symbol}, rows={len(df)}")
                     await self.strategy_manager.update_trailing_stops([deal], market_data, session, client)
                     await self.strategy_manager.check_strategy_exit_signals([deal], market_data, session, client)
+                    print("[STRATEGY_MANAGER] Обновление SL/проверка выходов завершены")
             except Exception as e:
                 print(f"Ошибка при использовании StrategyManager: {e}")
+        else:
+            print("[STRATEGY_MANAGER] StrategyManager отсутствует — пропускаем обновление SL/выходов")
 
     async def create_stop_loss_order(
         self,
@@ -247,14 +314,19 @@ class DealService:
         stop_side = 'SELL' if deal.side == 'BUY' else 'BUY'
         
         try:
-            print(f"➡️ Отправка ордера STOP_MARKET: symbol={symbol_str}, side={stop_side}, quantity={deal.size}, stopPrice={stop_loss_price:.4f}")
+            # Узнаем допустимую точность для цены и количества
+            price_precision, qty_precision = await self._get_symbol_precisions(client, symbol_str)
+            normalized_stop = self._round_to_precision(stop_loss_price, price_precision)
+            normalized_qty = self._round_to_precision(float(deal.size), qty_precision)
+            
+            print(f"➡️ Отправка ордера STOP_MARKET: symbol={symbol_str}, side={stop_side}, quantity={normalized_qty}, stopPrice={normalized_stop}")
             # Создаем стоп-маркет ордер
             stop_order = await client.futures_create_order(
                 symbol=symbol_str,
                 side=stop_side,
                 type='STOP_MARKET',
-                quantity=deal.size,
-                stopPrice=stop_loss_price,
+                quantity=normalized_qty,
+                stopPrice=normalized_stop,
                 reduceOnly=True
             )
             
@@ -270,6 +342,27 @@ class DealService:
         except Exception as e:
             print(f"❌ Ошибка при создании стоп-лосс ордера на Binance: {e}. Параметры: symbol={symbol_str}, side={stop_side}, quantity={deal.size}, stopPrice={stop_loss_price:.4f}")
             raise
+
+    async def _get_symbol_precisions(self, client, symbol: str) -> tuple[int, int]:
+        """Возвращает (price_precision, quantity_precision) для символа фьючерсов."""
+        try:
+            info = await client.futures_exchange_info()
+            for s in info.get('symbols', []):
+                if s.get('symbol') == symbol:
+                    price_precision = int(s.get('pricePrecision', 2))
+                    quantity_precision = int(s.get('quantityPrecision', 3))
+                    return price_precision, quantity_precision
+        except Exception as e:
+            print(f"[PRECISION] Не удалось получить exchangeInfo: {e}")
+        # Значения по умолчанию, если не удалось получить
+        return 2, 3
+
+    def _round_to_precision(self, value: float, precision: int) -> float:
+        """Округляет число до нужной точности десятичных знаков с HALF_UP."""
+        if precision < 0:
+            return float(value)
+        quant = Decimal('1e-{0}'.format(precision))
+        return float(Decimal(str(value)).quantize(quant, rounding=ROUND_HALF_UP))
 
     async def update_stop_loss_order(
         self,
@@ -290,6 +383,10 @@ class DealService:
         )
         
         try:
+            # Нормализуем новую цену по точности символа
+            price_precision, _ = await self._get_symbol_precisions(client, symbol_str)
+            normalized_stop = self._round_to_precision(new_stop_loss_price, price_precision)
+            
             # Отменяем старый ордер
             await client.futures_cancel_order(
                 symbol=symbol_str,
@@ -298,14 +395,14 @@ class DealService:
             print(f"Отменен старый стоп-лосс ордер: {deal.stop_loss_order_id}")
             
             # Создаем новый ордер
-            new_order_id = await self.create_stop_loss_order(deal, session, client, new_stop_loss_price)
+            new_order_id = await self.create_stop_loss_order(deal, session, client, normalized_stop)
             
             return new_order_id
             
         except Exception as e:
             print(f"Ошибка при обновлении стоп-лосс ордера: {e}")
             # Если не удалось обновить ордер, создаем новый
-            return await self.create_stop_loss_order(deal, session, client, new_stop_loss_price)
+            return await self.create_stop_loss_order(deal, session, client, normalized_stop)
 
     async def cancel_stop_loss_order(
         self,
@@ -457,7 +554,7 @@ class DealService:
                 or (not deal_is_long and position_is_long)
             ):
                 print(f"Позиция уже закрыта или реверсирована, сделка {deal.id} закрывается только в базе")
-                await self.repo.close_deal(deal.id, session)
+                await self.repo.close_deal(deal.id, session=session)
                 if self.log_service:
                     strategy_name = await self._get_strategy_name(deal)
                     await self.log_service.add_log(
@@ -536,3 +633,6 @@ class DealService:
             user_id=user_id
         )
         return items, total
+
+    async def get_last_closed_deal_for_user_and_symbol(self, user_id, symbol):
+        return await self.repo.get_last_closed_deal_by_symbol(user_id, symbol)

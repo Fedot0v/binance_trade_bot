@@ -53,11 +53,11 @@ class CompensationParameters(BaseModel):
         lt=1,
         description="Порог для запуска компенсации (доля, например, 0.0025 = 0.25%)"
     )
-    compensation_time_window: int = Field(
-        default=15,
+    compensation_delay_candles: int = Field(
+        default=3,
         ge=1,
-        le=60,
-        description="Временное окно для компенсации в минутах"
+        le=20,
+        description="Количество свечей ожидания после первого сигнала по BTC"
     )
     impulse_threshold: float = Field(
         default=0.004,
@@ -71,11 +71,41 @@ class CompensationParameters(BaseModel):
         le=5,
         description="Количество свечей против позиции для компенсации"
     )
-    max_trade_duration: int = Field(
-        default=60,
-        ge=10,
-        le=240,
-        description="Максимальная продолжительность сделки в минутах"
+
+    # Новые параметры подтверждения и аварийного входа
+    eth_confirmation_candles: int = Field(
+        default=3,
+        ge=1,
+        le=10,
+        description="Сколько последних свечей ETH должны идти в сторону BTC"
+    )
+    require_eth_ema_alignment: bool = Field(
+        default=True,
+        description="Требовать совпадение тренда ETH по EMA с направлением BTC"
+    )
+    eth_volume_min_ratio: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=5.0,
+        description="Минимальное отношение объёма ETH (последние N к предыдущим). 0 — отключено"
+    )
+    high_adverse_threshold: float = Field(
+        default=0.01,
+        gt=0,
+        lt=1,
+        description="Порог аварийного входа без ожидания ETH (доля, например, 0.01 = 1%)"
+    )
+    max_compensation_window_candles: int = Field(
+        default=30,
+        ge=5,
+        le=200,
+        description="Максимальное число свечей ожидания от первого сигнала BTC"
+    )
+
+    # Направление компенсации: по умолчанию противоположно BTC (хедж)
+    eth_compensation_opposite: bool = Field(
+        default=True,
+        description="Если True, ETH открывается в противоположную сторону к BTC; если False — в ту же"
     )
 
     model_config = {

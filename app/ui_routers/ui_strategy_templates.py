@@ -17,6 +17,7 @@ from models.user_model import User, Symbols, Intervals
 from services.strategy_config_service import StrategyConfigService
 from encryption.crypto import decrypt
 from strategies.base_strategy import format_params_for_display, should_show_percentage_format, PERCENTAGE_PARAMS
+from strategies.registry import REGISTRY
 
 
 templates = Jinja2Templates(directory="app/templates")
@@ -27,6 +28,34 @@ current_superuser = fastapi_users.current_user(superuser=True)
 
 get_strategy_template_service = get_user_strategy_template_service
 
+# Подсказки для параметров стратегий (краткие описания)
+PARAM_HINTS = {
+    # Общие/Новичок
+    "ema_fast": "Быстрая EMA: меньше — чувствительнее к изменениям",
+    "ema_slow": "Медленная EMA: больше — более сглаженный тренд",
+    "trend_threshold": "Минимальное расхождение EMA для сигнала (доля, 0.001 = 0.1%)",
+    "deposit_prct": "Доля депозита на сделку (0.1 = 10%)",
+    "stop_loss_pct": "Стоп-лосс от цены входа (доля)",
+    "take_profit_pct": "Тейк-профит от цены входа (доля)",
+    "trailing_stop_pct": "Трейлинг-стоп (доля) — подтягивается по прибыли",
+    # Компенсация
+    "btc_deposit_prct": "Доля депозита на сделку BTC",
+    "btc_stop_loss_pct": "Стоп-лосс BTC (доля)",
+    "btc_take_profit_pct": "Тейк-профит BTC (доля)",
+    "eth_deposit_prct": "Доля депозита на сделку ETH",
+    "eth_stop_loss_pct": "Стоп-лосс ETH (доля)",
+    "eth_take_profit_pct": "Тейк-профит ETH (доля)",
+    "compensation_threshold": "Просадка BTC от входа для запуска компенсации (доля)",
+    "compensation_delay_candles": "Задержка (в свечах) после первого сигнала",
+    "impulse_threshold": "Импульс на свече (доля) как доп. триггер",
+    "candles_against_threshold": "Мин. кол-во свечей против позиции BTC",
+    "eth_confirmation_candles": "Сколько последних свечей ETH подтверждают направление",
+    "require_eth_ema_alignment": "Требовать совпадения тренда ETH по EMA с ожиданием",
+    "eth_volume_min_ratio": "Мин. отношение объёмов ETH (0 — отключено)",
+    "high_adverse_threshold": "Сильная просадка BTC для аварийного входа (без задержки)",
+    "max_compensation_window_candles": "Макс. окно ожидания компенсации от первого сигнала",
+    "eth_compensation_opposite": "Если включено — ETH открывается в противоположную сторону к BTC (хедж). Если выключено — ETH открывается в ту же сторону, что и BTC.",
+}
 
 @router.get("/strategy-templates/list/")
 async def strategy_template_list(
@@ -55,10 +84,24 @@ async def strategy_template_create_form(
 ):
     strategies = await config_strategy_service.get_active()
     selected_parameters = None
+    selected_strategy_name = None
     symbols = [s.value for s in Symbols]
     intervals = [i.value for i in Intervals]
     if strategy_config_id:
         selected_parameters = await config_strategy_service.get_parameters(strategy_config_id)
+        cfg = await config_strategy_service.get_by_id(strategy_config_id)
+        selected_strategy_name = getattr(cfg, 'name', None)
+        # Если выбран compensation — добавим отсутствующие параметры по умолчанию
+        try:
+            if selected_strategy_name and selected_strategy_name in REGISTRY:
+                defaults = REGISTRY[selected_strategy_name]["default_parameters"]
+                if not selected_parameters:
+                    selected_parameters = {}
+                for k, v in defaults.items():
+                    if k not in selected_parameters:
+                        selected_parameters[k] = v
+        except Exception:
+            pass
         # Параметры передаются как есть (в долях), проценты показываются динамически в шаблоне
 
     return templates.TemplateResponse("strategy_templates/strategy_template_create_form.html", {
@@ -67,11 +110,13 @@ async def strategy_template_create_form(
         "strategies": strategies,
         "strategy_config_id": strategy_config_id,
         "parameters": selected_parameters,
+        "selected_strategy_name": selected_strategy_name,
         "symbols": symbols,
         "intervals": intervals,
         "format_params_for_display": format_params_for_display,
         "should_show_percentage_format": should_show_percentage_format,
-        "percentage_params": PERCENTAGE_PARAMS
+        "percentage_params": PERCENTAGE_PARAMS,
+        "param_hints": PARAM_HINTS,
     })
 
 # Обработка формы создания
@@ -92,6 +137,9 @@ async def create_strategy_template(
 ):
     form = await request.form()
     params = {k[6:]: v for k, v in form.items() if k.startswith('param_')}
+    # Обрабатываем чекбокс eth_compensation_opposite (если чекбокс не отмечен — ключа не будет в форме)
+    if 'eth_compensation_opposite' in params:
+        params['eth_compensation_opposite'] = True if params['eth_compensation_opposite'] in ['true', 'on', '1'] else False
 
     # Обрабатываем strategy_config_id
     if strategy_config_id == "" or strategy_config_id == "None" or strategy_config_id is None:
@@ -118,7 +166,11 @@ async def create_strategy_template(
 
         print(f"DEBUG: Параметры после конвертации: {params}")
 
-    if not params:
+    if params:
+        # Явно приводим булев параметр при создании
+        if 'eth_compensation_opposite' in params and isinstance(params['eth_compensation_opposite'], str):
+            params['eth_compensation_opposite'] = params['eth_compensation_opposite'].lower() in ['true', '1', 'on', 'yes']
+    else:
         params = None
 
     symbol_enum = Symbols(symbol)
@@ -160,6 +212,7 @@ async def strategy_template_edit_form(
     request: Request,
     template_id: int,
     service: UserStrategyTemplateService = Depends(get_strategy_template_service),
+    config_strategy_service: StrategyConfigService = Depends(get_strategy_service),
     user: User = Depends(current_active_user)
 ):
     symbols = [s.value for s in Symbols]
@@ -170,6 +223,19 @@ async def strategy_template_edit_form(
 
     # Используем параметры шаблона
     selected_parameters = template.parameters.copy() if template and template.parameters else None
+    # Подмешаем дефолты из реестра, чтобы отрендерить недостающие ключи (например, новый чекбокс)
+    try:
+        cfg = await config_strategy_service.get_by_id(template.strategy_config_id)
+        strategy_name = getattr(cfg, 'name', None)
+        if strategy_name and strategy_name in REGISTRY:
+            defaults = REGISTRY[strategy_name]["default_parameters"]
+            if not selected_parameters:
+                selected_parameters = {}
+            for k, v in defaults.items():
+                if k not in selected_parameters:
+                    selected_parameters[k] = v
+    except Exception:
+        pass
 
     return templates.TemplateResponse("strategy_templates/strategy_template_edit_form.html", {
         "request": request,
@@ -180,7 +246,8 @@ async def strategy_template_edit_form(
         "template": template,
         "format_params_for_display": format_params_for_display,
         "should_show_percentage_format": should_show_percentage_format,
-        "percentage_params": PERCENTAGE_PARAMS
+        "percentage_params": PERCENTAGE_PARAMS,
+        "param_hints": PARAM_HINTS,
     })
 
 # Обработка формы редактирования
@@ -201,6 +268,9 @@ async def edit_strategy_template(
 ):
     form = await request.form()
     params = {k[6:]: v for k, v in form.items() if k.startswith('param_')}
+    # Обрабатываем чекбокс eth_compensation_opposite (если чекбокс не отмечен — ключа не будет в форме)
+    if 'eth_compensation_opposite' in params:
+        params['eth_compensation_opposite'] = True if params['eth_compensation_opposite'] in ['true', 'on', '1'] else False
 
     # Получаем текущий шаблон, чтобы взять strategy_config_id из него
     current_template = await service.get_by_id(template_id, user.id)
@@ -221,7 +291,11 @@ async def edit_strategy_template(
 
         print(f"DEBUG: Параметры после конвертации: {params}")
 
-    if not params:
+    if params:
+        # Явно приводим булев параметр при обновлении
+        if 'eth_compensation_opposite' in params and isinstance(params['eth_compensation_opposite'], str):
+            params['eth_compensation_opposite'] = params['eth_compensation_opposite'].lower() in ['true', '1', 'on', 'yes']
+    else:
         params = None
 
     symbol_enum = Symbols(symbol)

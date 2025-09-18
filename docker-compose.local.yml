@@ -1,0 +1,114 @@
+name: binance_trade_bot_local
+
+services:
+  postgres:
+    image: postgres:16
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7
+    restart: always
+    networks:
+      - backend
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    working_dir: /app
+    command: >
+      sh -c "python -m app.db.init_db && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
+      - PYTHONPATH=/app/app
+      - BINANCE_TESTNET=${BINANCE_TESTNET}
+      - BINANCE_API_URL=${BINANCE_API_URL}
+      - BINANCE_TESTNET_URL=${BINANCE_TESTNET_URL}
+      - BINANCE_MAINNET_URL=${BINANCE_MAINNET_URL}
+      - ENVIRONMENT=${ENVIRONMENT}
+      - DEBUG=${DEBUG}
+      - LOG_LEVEL=${LOG_LEVEL}
+      - SECRET=${SECRET}
+      - FERNET_KEY=${FERNET_KEY}
+      - SSL_MODE=${SSL_MODE}
+    volumes:
+      - .:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    env_file:
+      - .env.dev
+      - .env
+    networks:
+      - backend
+
+  celery_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    working_dir: /app
+    command: celery -A app.celery_app worker --loglevel=info
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      - PYTHONPATH=/app/app
+    volumes:
+      - .:/app
+    env_file:
+      - .env.dev
+      - .env
+    networks:
+      - backend
+
+  celery_beat:
+    build:
+      context: .
+      dockerfile: Dockerfile.beat
+    working_dir: /app
+    command: celery -A app.celery_app beat --loglevel=info
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      - PYTHONPATH=/app/app
+    volumes:
+      - .:/app
+    env_file:
+      - .env.dev
+      - .env
+    networks:
+      - backend
+
+volumes:
+  postgres_data:
+
+networks:
+  backend:
+    driver: bridge

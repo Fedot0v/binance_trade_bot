@@ -67,15 +67,8 @@ class NovichokAdapter:
                 )
 
                 if stop_loss_triggered:
-                    close_intent = OrderIntent(
-                        symbol=symbol,
-                        side='SELL' if pos_side == 'BUY' else 'BUY',
-                        sizing='close',
-                        size=0,
-                        role='close'
-                    )
-                    print(f"🛑 NovichokAdapter: СТОП-ЛОСС! Цена {current_price:.2f} {'ниже' if pos_side == 'BUY' else 'выше'} уровня {stop_loss_price:.2f}")
-                    return Decision(intents=[close_intent])
+                    # Не создаём close-интент — закрытие должно сработать по биржевому стоп-лоссу
+                    return Decision(intents=[])
 
                 take_profit_price = self.legacy.calculate_take_profit_price(entry_price, strategy_side, symbol)
                 # Проверяем, что take_profit_price не None
@@ -88,15 +81,8 @@ class NovichokAdapter:
                 )
 
                 if take_profit_triggered:
-                    close_intent = OrderIntent(
-                        symbol=symbol,
-                        side='SELL' if pos_side == 'BUY' else 'BUY',
-                        sizing='close',
-                        size=0,
-                        role='close'
-                    )
-                    print(f"🎯 NovichokAdapter: ТЕЙК-ПРОФИТ! Цена {current_price:.2f} {'выше' if pos_side == 'BUY' else 'ниже'} уровня {take_profit_price:.2f}")
-                    return Decision(intents=[close_intent])
+                    # Не создаём close-интент — придерживаемся закрытия по SL/внешней логике
+                    return Decision(intents=[])
 
                 # Создаем простой объект для совместимости с BaseStrategy
                 class PositionAdapter:
@@ -145,15 +131,8 @@ class NovichokAdapter:
                 )
 
                 if trailing_stop_triggered:
-                    close_intent = OrderIntent(
-                        symbol=symbol,
-                        side='SELL' if pos_side == 'BUY' else 'BUY',
-                        sizing='close',
-                        size=0,
-                        role='close'
-                    )
-                    print(f"📈 NovichokAdapter: ТРЕЙЛИНГ-СТОП! Цена {current_price:.2f} достигла уровня {trailing_stop_price:.2f}")
-                    return Decision(intents=[close_intent])
+                    # Не создаём close-интент — трейлинг реализуется через обновление SL на бирже
+                    return Decision(intents=[])
 
             return Decision(intents=[])
         intent = OrderIntent(

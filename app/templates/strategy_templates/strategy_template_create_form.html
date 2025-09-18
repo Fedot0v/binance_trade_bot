@@ -46,31 +46,47 @@
             <h4>Параметры стратегии:</h4>
 
             {% for key, value in parameters.items() %}
-                <label>{{ key }}:
+                {% if key == 'eth_compensation_opposite' %}
+                    <label>{{ key }}:</label>
+                    <div class="hint">
+                        {% if param_hints and key in param_hints %}
+                            {{ param_hints[key] }}
+                        {% endif %}
+                    </div>
+                    <label class="checkbox-row">
+                        <input type="checkbox" name="param_eth_compensation_opposite" value="true" {% if value %}checked{% endif %}>
+                        <span>Включить противоположную сторону (хедж)</span>
+                    </label>
+                {% else %}
+                    <label>{{ key }}:</label>
+                    {% if param_hints and key in param_hints %}
+                        <div class="hint">{{ param_hints[key] }}</div>
+                    {% endif %}
 
-                    {% if key in percentage_params %}
-                        {# Показываем оба значения: в долях (для ввода) и в процентах (для понимания) #}
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <input type="text" name="param_{{ key }}" value="{{ value }}" style="flex: 1;" data-percentage-param="true">
-                            <span style="color: #F0B90B; font-weight: bold; white-space: nowrap;" data-percentage-display>
-                                {% if value is number %}
-                                    ({{ "%.1f"|format(value * 100) }}%)
-                                {% elif value %}
-                                    {% if '.' in value or value.replace('.', '').isdigit() %}
-                                        {% set num_value = value | float %}
-                                        ({{ "%.1f"|format(num_value * 100) }}%)
+                        {% if key in percentage_params %}
+                            {# Показываем оба значения: в долях (для ввода) и в процентах (для понимания) #}
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <input type="text" name="param_{{ key }}" value="{{ value }}" style="flex: 1;" data-percentage-param="true">
+                                <span style="color: #F0B90B; font-weight: bold; white-space: nowrap;" data-percentage-display>
+                                    {% if value is number %}
+                                        ({{ "%.1f"|format(value * 100) }}%)
+                                    {% elif value %}
+                                        {% if '.' in value or value.replace('.', '').isdigit() %}
+                                            {% set num_value = value | float %}
+                                            ({{ "%.1f"|format(num_value * 100) }}%)
+                                        {% else %}
+                                            ({{ value }})
+                                        {% endif %}
                                     {% else %}
                                         ({{ value }})
                                     {% endif %}
-                                {% else %}
-                                    ({{ value }})
-                                {% endif %}
-                            </span>
-                        </div>
-                    {% else %}
-                        <input type="text" name="param_{{ key }}" value="{{ value }}">
-                    {% endif %}
-                </label>
+                                </span>
+                            </div>
+                        {% else %}
+                            <input type="text" name="param_{{ key }}" value="{{ value }}">
+                        {% endif %}
+                    </label>
+                {% endif %}
             {% endfor %}
             <small><em>Значения вводятся в долях (0.02 = 2%), рядом показаны проценты для удобства</em></small>
         {% endif %}

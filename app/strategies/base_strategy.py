@@ -101,13 +101,22 @@ class BaseStrategy(ABC):
     
     def should_update_trailing_stop(self, deal, current_price: float) -> bool:
         """Определяет, нужно ли обновлять trailing stop"""
-        if not hasattr(deal, 'max_price') or not hasattr(deal, 'min_price'):
+        if not hasattr(deal, 'entry_price'):
             return False
-            
-        if deal.side == 'BUY':
-            return current_price > getattr(deal, 'max_price', deal.entry_price)
+
+        # Безопасно получаем уровни экстремумов; если None, используем цену входа
+        max_price = getattr(deal, 'max_price', None)
+        min_price = getattr(deal, 'min_price', None)
+
+        if max_price is None:
+            max_price = deal.entry_price
+        if min_price is None:
+            min_price = deal.entry_price
+
+        if getattr(deal, 'side', 'BUY') == 'BUY':
+            return float(current_price) > float(max_price)
         else:
-            return current_price < getattr(deal, 'min_price', deal.entry_price)
+            return float(current_price) < float(min_price)
     
     def calculate_trailing_stop_price(self, deal, current_price: float) -> Optional[float]:
         """Рассчитывает новую цену trailing stop"""

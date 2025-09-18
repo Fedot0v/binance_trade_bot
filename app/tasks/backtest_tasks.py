@@ -53,6 +53,23 @@ def convert_timestamps_to_datetime(obj):
         return obj.isoformat()
     return obj
 
+def sanitize_json_values(obj):
+    """Рекурсивно заменяет недопустимые для JSON значения (NaN/Infinity) на None/строки."""
+    import math
+    if isinstance(obj, dict):
+        return {k: sanitize_json_values(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [sanitize_json_values(v) for v in obj]
+    if isinstance(obj, float):
+        if math.isnan(obj) or math.isinf(obj):
+            return None
+        return obj
+    if isinstance(obj, str):
+        if obj in ("Infinity", "-Infinity", "NaN"):
+            return None
+        return obj
+    return obj
+
 @celery_app.task(bind=True, name='app.tasks.backtest_tasks.run_backtest_task')
 def run_backtest_task(
     self,
@@ -80,7 +97,8 @@ def run_backtest_task(
             print("DEBUG: UserStrategyTemplateService initialized.")
             
             deal_repo = DealRepository(session)
-            exchange_client_factory = BinanceClientFactory() # Assuming testnet=True by default or configurable
+            testnet_env = os.environ.get("BINANCE_TESTNET", "false").lower() == "true"
+            exchange_client_factory = BinanceClientFactory(testnet=testnet_env)
             apikeys_repo = APIKeysRepository(session)
             apikeys_service = APIKeysService(apikeys_repo)
             log_repo = StrategyLogRepository(session)
@@ -149,50 +167,54 @@ def run_backtest_task(
                     # Если нет пользовательских параметров, просто обновляем символ в шаблоне
                     template.symbol = symbol
 
-                # Check for open trades (relevant for compensation strategy)
+                # Backtest isolation: do NOT check live DB deals; backtest has its own state
                 if compensation_strategy:
-                    print("DEBUG: Checking for open trades for compensation strategy.")
-                    btc_open_deal = await deal_service.get_open_deal_for_user_and_symbol(UUID(user_id), "BTCUSDT")
-                    eth_open_deal = await deal_service.get_open_deal_for_user_and_symbol(UUID(user_id), "ETHUSDT")
+                    print("DEBUG: Skipping live DB open-trades check for compensation strategy in backtest mode.")
 
-                    if btc_open_deal or eth_open_deal:
-                        print("ERROR: Open trades already exist for compensation strategy.")
-                        await backtest_result_service.update_result_status(self.request.id, "failed", {"error": "Open trades already exist for compensation strategy."})
-                        await session.commit()
-                        return # Or raise an exception if it should be critical
-                    print("DEBUG: No open trades found for compensation strategy.")
-
-                # Create LegacyBacktestService
-                print("DEBUG: Initializing LegacyBacktestService.")
-                legacy_service = LegacyBacktestService()
-                print("DEBUG: LegacyBacktestService initialized.")
-                
+                # Use UniversalBacktestService aligned with online logic
                 result: BacktestResult
                 if compensation_strategy:
-                    print(f"DEBUG: Calling run_compensation_backtest for template {template.template_name}")
-                    print(f"🎯 Starting universal compensation backtest in Celery for template {template.template_name}")
-                    result = await legacy_service.run_compensation_backtest(
+                    from strategies.strategy_factory import make_strategy
+                    universal_service = build_universal_backtest_service(session)
+                    # Build the same adapter used online
+                    strategy = make_strategy('compensation', template)
+                    symbols_list = symbol if isinstance(symbol, list) else ['BTCUSDT', 'ETHUSDT']
+                    try:
+                        print(f"DEBUG: Effective params (compensation): {getattr(template, 'parameters', {})}")
+                    except Exception:
+                        pass
+                    print(f"🎯 Starting universal compensation backtest (online-aligned) for template {template.template_name}")
+                    result = await universal_service.run_compensation_backtest(
+                        strategy=strategy,
                         template=template,
+                        symbols=symbols_list,
                         data_source='download',
                         start_date=start_date,
                         end_date=end_date,
                         initial_balance=initial_balance,
-                        csv_btc_path=None, # Assuming download, no CSV needed
-                        csv_eth_path=None, # Assuming download, no CSV needed
-                        symbols=symbol # Передаем символ(ы)
+                        config=None
                     )
-                    print(f"DEBUG: run_compensation_backtest completed. Result type: {type(result)}")
                 else:
-                    print(f"🎯 Starting universal regular backtest in Celery for template {template.template_name}")
-                    result = await legacy_service.run_novichok_backtest(
+                    # Align regular strategy backtest with online logic as well
+                    from strategies.strategy_factory import make_strategy
+                    universal_service = build_universal_backtest_service(session)
+                    strategy = make_strategy('novichok', template)
+                    # Normalize symbol list
+                    symbols_list = symbol if isinstance(symbol, list) else [symbol]
+                    try:
+                        print(f"DEBUG: Effective params (novichok): {getattr(template, 'parameters', {})}")
+                    except Exception:
+                        pass
+                    print(f"🎯 Starting universal regular backtest (online-aligned) for template {template.template_name}")
+                    result = await universal_service.run_backtest(
+                        strategy=strategy,
                         template=template,
+                        symbols=symbols_list,
                         data_source='download',
                         start_date=start_date,
                         end_date=end_date,
                         initial_balance=initial_balance,
-                        leverage=leverage,
-                        csv_file_path=None, # Assuming download, no CSV needed
-                        symbols=symbol # Передаем символ(ы)
+                        config=None
                     )
                 
                 print(f"DEBUG: Backtest result equity_curve size: {len(result.equity_curve)}")
@@ -200,6 +222,7 @@ def run_backtest_task(
                 
                 # Save backtest results to database
                 processed_results = convert_timestamps_to_datetime(result.model_dump(mode='json'))
+                processed_results = sanitize_json_values(processed_results)
                 await backtest_result_service.update_result_status(
                     self.request.id, "completed", processed_results
                 )

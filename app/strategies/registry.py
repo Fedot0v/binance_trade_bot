@@ -30,10 +30,16 @@ REGISTRY = {
             "eth_deposit_prct": 0.1,
             "eth_stop_loss_pct": 0.01,
             "compensation_threshold": 0.0025,
-            "compensation_time_window": 15,
+            "compensation_delay_candles": 3,
             "impulse_threshold": 0.004,
             "candles_against_threshold": 2,
-            "max_trade_duration": 60
+            # Новые параметры подтверждения и аварийного входа
+            "eth_confirmation_candles": 3,
+            "require_eth_ema_alignment": True,
+            "eth_volume_min_ratio": 0.0,
+            "high_adverse_threshold": 0.01,
+            "max_compensation_window_candles": 30,
+            "eth_compensation_opposite": True
         },
         "is_active": True,
     },

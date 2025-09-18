@@ -6,7 +6,7 @@ import numpy as np
 from datetime import datetime
 import os
 
-# Устанавливаем тестовый ключ только если он не установлен
+
 if "FERNET_KEY" not in os.environ:
     os.environ["FERNET_KEY"] = "test-fernet-key-for-testing-only-not-for-production-use"
 

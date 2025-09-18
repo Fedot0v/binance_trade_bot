@@ -177,7 +177,6 @@ class PositionManager:
                         if new_stop is not None:
                             # Обновляем фактический стоп-лосс уровнем трейлинга
                             position['stop_loss'] = new_stop
-                            print(f"📈 Обновлен trailing stop: {new_stop:.4f}")
                     except Exception as e:
                         print(f"⚠️  Ошибка обновления trailing stop: {e}")
                         pass

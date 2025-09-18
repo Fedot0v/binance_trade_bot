@@ -17,10 +17,13 @@ from repositories.apikeys_repository import APIKeysRepository
 from repositories.bot_repository import UserBotRepository
 
 from clients.binance_client import BinanceClientFactory
+import os
 
 
-def build_trade_service(session, *, testnet=False):
-    exchange_client_factory = BinanceClientFactory(testnet=testnet)
+def build_trade_service(session, *, testnet: bool | None = None):
+    testnet_env = os.environ.get("BINANCE_TESTNET", "false").lower() == "true"
+    effective_testnet = testnet if testnet is not None else testnet_env
+    exchange_client_factory = BinanceClientFactory(testnet=effective_testnet)
 
     deal_repo = DealRepository(session)
     log_repo = StrategyLogRepository(session)
@@ -54,8 +57,10 @@ def build_trade_service(session, *, testnet=False):
     return trade_service
 
 
-def build_deal_service(session, *, testnet=False):
-    exchange_client_factory = BinanceClientFactory(testnet=testnet)
+def build_deal_service(session, *, testnet: bool | None = None):
+    testnet_env = os.environ.get("BINANCE_TESTNET", "false").lower() == "true"
+    effective_testnet = testnet if testnet is not None else testnet_env
+    exchange_client_factory = BinanceClientFactory(testnet=effective_testnet)
     deal_repo = DealRepository(session)
     apikeys_repo = APIKeysRepository(session)
     apikeys_service = APIKeysService(apikeys_repo)
@@ -65,5 +70,14 @@ def build_deal_service(session, *, testnet=False):
         deal_repo, exchange_client_factory, apikeys_service,
         log_service
     )
+
+    # Подключаем StrategyManager, чтобы Celery-таски могли обновлять трейлинг-стопы/выходы
+    try:
+        from services.strategy_manager import StrategyManager
+        strategy_manager = StrategyManager(deal_service, log_service)
+        deal_service.strategy_manager = strategy_manager
+        print("[INIT] StrategyManager подключен в build_deal_service (Celery path)")
+    except Exception as e:
+        print(f"[INIT] Не удалось подключить StrategyManager: {e}")
 
     return deal_service

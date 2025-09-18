@@ -246,7 +246,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Данные шаблонов из backend
     const templatesData = {{ templates_data|tojson }};
     console.log('🔍 Данные шаблонов из backend:', templatesData);
-
+    
     // Передаем данные в BacktestManager
     if (window.backtestManager) {
         window.backtestManager.setTemplatesData(templatesData);
@@ -265,6 +265,32 @@ document.addEventListener('DOMContentLoaded', function() {
     if (endDateInput) {
         endDateInput.value = today.toISOString().split('T')[0];
     }
+
+    // Инициализируем скрытие символа при уже выбранном компенсационном шаблоне
+    const templateSelect = document.getElementById('template_id');
+    const symbolGroup = document.getElementById('symbol-group');
+    const compensationInfo = document.getElementById('compensation-info');
+    const symbolSelect = document.getElementById('symbol');
+
+    function applyTemplateVisibility() {
+        if (!templateSelect) return;
+        const selectedOption = templateSelect.options[templateSelect.selectedIndex];
+        const strategyConfigId = selectedOption ? String(selectedOption.getAttribute('data-strategy-config-id') || '') : '';
+        if (strategyConfigId === '2') {
+            if (symbolGroup) symbolGroup.style.display = 'none';
+            if (compensationInfo) compensationInfo.style.display = 'block';
+            if (symbolSelect) {
+                symbolSelect.required = false;
+                symbolSelect.value = '';
+            }
+        } else {
+            if (symbolGroup) symbolGroup.style.display = 'block';
+            if (compensationInfo) compensationInfo.style.display = 'none';
+        }
+    }
+
+    applyTemplateVisibility();
+    templateSelect && templateSelect.addEventListener('change', applyTemplateVisibility);
 });
 </script>
 

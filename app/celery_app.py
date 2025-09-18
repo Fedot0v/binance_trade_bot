@@ -13,11 +13,11 @@ celery_app = Celery(
 celery_app.conf.beat_schedule = {
     'run-active-bots-every-30-seconds': {
         'task': 'tasks.trade_tasks.run_active_bots',
-        'schedule': 30.0,
+        'schedule': 60.0,
     },
     'watcher-update-deals-every-30-seconds': {
         'task': 'tasks.trade_tasks.watcher_update_deals',
-        'schedule': 30.0,
+        'schedule': 60.0,
     },
 }
 
