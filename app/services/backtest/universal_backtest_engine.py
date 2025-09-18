@@ -4,10 +4,11 @@ Universal backtest engine for any strategies
 from abc import ABC, abstractmethod
 from typing import Dict, Any, List, Optional, Protocol
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from schemas.backtest import BacktestResult, BacktestEquityPoint, BacktestTrade
 from strategies.contracts import Strategy, MarketData, OpenState, Decision, OrderIntent
+from strategies.compensation_strategy import CompensationStrategy
 
 
 class BacktestContext:
@@ -136,7 +137,8 @@ class UniversalBacktestEngine(BacktestEngine):
         for i, current_time in enumerate(self.timeline):
             self.context.current_time = current_time
 
-            current_md = self._get_market_data_at_time(current_time)
+            # Изменено: получаем текущие данные напрямую из контекста
+            current_md = {symbol: df[df.index <= current_time] for symbol, df in self.context.market_data.items()}
 
             open_state = self._build_open_state()
 
@@ -164,19 +166,6 @@ class UniversalBacktestEngine(BacktestEngine):
             for symbol, position in list(self.context.open_positions.items()):
                 exit_price = last_prices.get(symbol, position['entry_price'])
                 self._close_position(symbol, position, exit_price, self.context.current_time, "end_of_data")
-
-    def _get_market_data_at_time(self, current_time) -> MarketData:
-        """Получить рыночные данные на заданное время"""
-        result = {}
-
-        for symbol, df in self.context.market_data.items():
-            mask = df.index <= current_time
-            if mask.any():
-                result[symbol] = df[mask].copy()
-            else:
-                result[symbol] = pd.DataFrame(columns=df.columns)
-
-        return result
 
     def _build_open_state(self) -> OpenState:
         """Создать состояние открытых позиций для стратегии"""
@@ -251,7 +240,6 @@ class UniversalBacktestEngine(BacktestEngine):
 
     def _open_position(self, intent: OrderIntent, current_price: float, current_time):
         """Открыть позицию"""
-        # Calculate size
         if intent.sizing == "risk_pct":
             size_usd = self.context.current_balance * intent.size
         elif intent.sizing == "usd":
@@ -543,6 +531,8 @@ class UniversalBacktestEngine(BacktestEngine):
         del self.context.open_positions[symbol]
 
         print(f"💰 CLOSED position: {position['side']} {symbol} @ ${exit_price:.2f} (PnL: ${pnl:.2f})")
+        
+        
     def _calculate_pnl(self, position: Dict, exit_price: float) -> float:
         """Расчет прибыли/убытка"""
         entry_price = position['entry_price']
@@ -631,23 +621,24 @@ class UniversalBacktestEngine(BacktestEngine):
         formatted_trades = []
 
         for trade in self.context.trades:
-            # Process only closed trades
+            # В результаты отправляем только закрытые сделки
             if trade.get('status') == 'closed':
                 formatted_trade = BacktestTrade(
                     entry_time=trade['entry_time'],
-                    exit_time=trade['exit_time'],
+                    exit_time=trade.get('exit_time'),
                     entry_price=trade['entry_price'],
-                    exit_price=trade['exit_price'],
-                    side='long' if trade['side'] == 'BUY' else 'short',
+                    exit_price=trade.get('exit_price'),
+                    side=trade.get('side'),
                     size=trade['size'],
-                    pnl=trade['pnl'],
-                    pnl_pct=trade['pnl_pct'],
+                    pnl=trade.get('pnl'),
+                    pnl_pct=trade.get('pnl_pct'),
                     reason=trade.get('reason', 'unknown'),
                     symbol=trade['symbol'],
-                    leverage=trade.get('leverage', self.context.leverage)
+                    leverage=trade.get('leverage', self.context.leverage),
+                    status=trade.get('status', 'unknown')
                 )
                 formatted_trades.append(formatted_trade)
-            # Ignore open trades - they should not be in the final result
+            # Открытые сделки игнорируем
 
         return formatted_trades
 
@@ -689,10 +680,14 @@ class UniversalBacktestEngine(BacktestEngine):
         avg_win = sum(t['pnl'] for t in winning_trades) / winning_count if winning_count > 0 else 0.0
         avg_loss = abs(sum(t['pnl'] for t in losing_trades) / losing_count) if losing_count > 0 else 0.0
 
-        # Profit factor
+        # Profit factor (избегаем Infinity/NaN)
         gross_profit = sum(t['pnl'] for t in winning_trades)
         gross_loss = abs(sum(t['pnl'] for t in losing_trades))
-        profit_factor = gross_profit / gross_loss if gross_loss > 0 else float('inf')
+        if gross_loss > 0:
+            profit_factor = gross_profit / gross_loss
+        else:
+            # Если нет убытков, задаем 0.0 (или 1.0). Используем 0.0 для совместимости с JSON/валидацией
+            profit_factor = 0.0
 
         # Max drawdown
         max_drawdown = self._calculate_max_drawdown()

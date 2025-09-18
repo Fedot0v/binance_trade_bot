@@ -16,16 +16,17 @@ class BacktestRequest(BaseModel):
 class BacktestTrade(BaseModel):
     """Trade information in backtest"""
     entry_time: datetime
-    exit_time: datetime
+    exit_time: Optional[datetime] = None
     entry_price: float
-    exit_price: float
+    exit_price: Optional[float] = None
     side: str
     size: float
-    pnl: float
-    pnl_pct: float
+    pnl: Optional[float] = None
+    pnl_pct: Optional[float] = None
     reason: str
     symbol: str
     leverage: int = 1
+    status: str = 'unknown'
 
 
 class BacktestEquityPoint(BaseModel):

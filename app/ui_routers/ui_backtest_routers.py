@@ -12,6 +12,7 @@ from models.user_model import Symbols
 from app.tasks.backtest_tasks import run_backtest_task # Импортируем нашу Celery задачу
 
 from dependencies.user_dependencies import fastapi_users
+from strategies.registry import REGISTRY
 from dependencies.di_factories import get_user_strategy_template_service, get_backtest_service, get_deal_service, get_strategy_service
 
 
@@ -37,19 +38,31 @@ async def backtest_form(
     
     # Получаем информацию о стратегиях для определения компенсационной
     strategy_configs = await strategy_config_service.get_active()
+    configs_by_id = {cfg.id: cfg for cfg in strategy_configs}
     
     # Получаем список символов из enum
     symbols_list = [symbol.value for symbol in Symbols]
 
     # Подготавливаем данные шаблонов с параметрами для JavaScript
     templates_with_params = []
+    # Удаляем устаревшие ключи перед отображением
+    DEPRECATED_KEYS = {"compensation_time_window", "max_trade_duration"}
     for template in templates_list:
+        # Сливаем дефолты из реестра и параметры шаблона пользователя
+        cfg = configs_by_id.get(template.strategy_config_id)
+        strategy_name = getattr(cfg, "name", None)
+        defaults = REGISTRY.get(strategy_name, {}).get("default_parameters", {}) if strategy_name else {}
+        user_params = template.parameters if hasattr(template, 'parameters') and template.parameters else {}
+        merged_params = {**defaults, **user_params}
+        # Фильтруем устаревшие ключи
+        merged_params = {k: v for k, v in merged_params.items() if k not in DEPRECATED_KEYS}
+
         template_data = {
             "id": template.id,
             "template_name": template.template_name,
             "description": getattr(template, 'description', ''),
             "strategy_config_id": template.strategy_config_id,
-            "parameters": template.parameters if hasattr(template, 'parameters') and template.parameters else {}
+            "parameters": merged_params
         }
         templates_with_params.append(template_data)
 
@@ -97,7 +110,6 @@ async def backtest_run(
     custom_param_trailing_stop_pct: str = Form(default=None),
     custom_param_impulse_threshold: str = Form(default=None),
     custom_param_candles_against_threshold: str = Form(default=None),
-    custom_param_max_trade_duration: str = Form(default=None),
 ):
     try:
         # Получаем шаблон стратегии пользователя
@@ -125,7 +137,6 @@ async def backtest_run(
         if custom_param_trailing_stop_pct: custom_params['trailing_stop_pct'] = custom_param_trailing_stop_pct
         if custom_param_impulse_threshold: custom_params['impulse_threshold'] = custom_param_impulse_threshold
         if custom_param_candles_against_threshold: custom_params['candles_against_threshold'] = custom_param_candles_against_threshold
-        if custom_param_max_trade_duration: custom_params['max_trade_duration'] = custom_param_max_trade_duration
 
         # Создаем модифицированный шаблон если есть пользовательские параметры
         if custom_params:
@@ -173,7 +184,7 @@ async def backtest_run(
         compensation_strategy_flag = False
         if template.strategy_config_id == 2:  # ID компенсационной стратегии
             compensation_strategy_flag = True
-            # Для компенсационной стратегии проверяем оба символа
+            # Для компенсационной стратегии информируем о текущих открытых сделках, но НЕ блокируем бэктест
             btc_open_deal = await deal_service.get_open_deal_for_user_and_symbol(
                 current_user.id, "BTCUSDT"
             )
@@ -181,14 +192,9 @@ async def backtest_run(
                 current_user.id, "ETHUSDT"
             )
 
-            print(f"  🔍 Проверка открытых сделок:")
+            print(f"  🔍 Проверка открытых сделок (информативно, без блокировки):")
             print(f"    BTC: {'Есть' if btc_open_deal else 'Нет'}")
             print(f"    ETH: {'Есть' if eth_open_deal else 'Нет'}")
-
-            if btc_open_deal:
-                raise ValueError("У вас уже есть открытая сделка по BTCUSDT")
-            if eth_open_deal:
-                raise ValueError("У вас уже есть открытая сделка по ETHUSDT")
 
         # Определяем символ(ы) для передачи в Celery задачу
         # Если это компенсационная стратегия, передаем оба символа, иначе - символ из формы.

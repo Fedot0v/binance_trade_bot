@@ -6,8 +6,8 @@ import pandas as pd
 from datetime import datetime
 
 from services.backtest.universal_backtest_engine import UniversalBacktestEngine, BacktestContext
-from services.csv_data_service import CSVDataService
-from services.csv_loader_service import CSVLoaderService
+from services.backtest.csv_data_service import CSVDataService
+from services.backtest.csv_loader_service import CSVLoaderService
 from services.backtest.market_data_utils import MarketDataUtils
 from schemas.backtest import BacktestResult
 from strategies.contracts import Strategy
@@ -120,6 +120,23 @@ class UniversalBacktestService:
                     side = getattr(trade, 'side', 'N/A')
                     pnl = getattr(trade, 'pnl', 0)
 
+                # Безопасные приведения типов и значения по умолчанию
+                try:
+                    entry_size = float(entry_size or 0)
+                except (TypeError, ValueError):
+                    entry_size = 0.0
+
+                try:
+                    leverage = int(leverage or 1)
+                except (TypeError, ValueError):
+                    leverage = 1
+
+                pnl = 0.0 if pnl is None else pnl
+                try:
+                    pnl = float(pnl)
+                except (TypeError, ValueError):
+                    pnl = 0.0
+
                 actual_position_value = entry_size * leverage if leverage > 1 else entry_size
 
                 print(f"  {i+1}. {symbol} {side}")
@@ -163,6 +180,20 @@ class UniversalBacktestService:
                 market_data[symbol] = df
                 print(f"📁 Loaded data {symbol} from {csv_file}: {len(df)} candles")
 
+            # Синхронизируем пары, если загружали несколько символов
+            if len(symbols) >= 2 and 'BTCUSDT' in market_data and 'ETHUSDT' in market_data:
+                market_data['BTCUSDT'], market_data['ETHUSDT'] = \
+                    MarketDataUtils.synchronize_two(
+                        market_data['BTCUSDT'],
+                        market_data['ETHUSDT']
+                    )
+                print("✅ Data synchronized by time (file) for BTCUSDT/ETHUSDT")
+                try:
+                    print(f"   BTC last: {market_data['BTCUSDT'].index[-1]} candles={len(market_data['BTCUSDT'])}")
+                    print(f"   ETH last: {market_data['ETHUSDT'].index[-1]} candles={len(market_data['ETHUSDT'])}")
+                except Exception:
+                    pass
+
         elif data_source == 'download':
             if not start_date or not end_date:
                 raise ValueError("start_date and end_date are required for download")
@@ -171,37 +202,31 @@ class UniversalBacktestService:
             if template:
                 interval = getattr(template, 'interval', '1m') or '1m'
 
-            if len(symbols) == 1:
+            # Если несколько символов, загружаем их по отдельности
+            for symbol in symbols:
                 csv_path = self.csv_loader.download_from_binance(
-                    symbols[0], start_date, end_date, interval
+                    symbol, start_date, end_date, interval
                 )
                 try:
                     df = self.csv_service.load_csv_data(csv_path)
-                    market_data[symbols[0]] = df
-                    print(f"📥 Downloaded data {symbols[0]}: {len(df)} candles")
+                    market_data[symbol] = df
+                    print(f"📥 Downloaded data {symbol}: {len(df)} candles")
                 finally:
                     self.csv_loader.cleanup_temp_file(csv_path)
 
-            else:
-                csv_paths = self.csv_loader.download_dual_from_binance(
-                    symbols[0], symbols[1], start_date, end_date, interval
-                )
+            # Синхронизируем пары при загрузке с биржи
+            if len(symbols) >= 2 and 'BTCUSDT' in market_data and 'ETHUSDT' in market_data:
+                market_data['BTCUSDT'], market_data['ETHUSDT'] = \
+                    MarketDataUtils.synchronize_two(
+                        market_data['BTCUSDT'],
+                        market_data['ETHUSDT']
+                    )
+                print("✅ Data synchronized by time (download) for BTCUSDT/ETHUSDT")
                 try:
-                    for i, (symbol, csv_path) in enumerate(zip(symbols, csv_paths)):
-                        df = self.csv_service.load_csv_data(csv_path)
-                        market_data[symbol] = df
-                        print(f"📥 Downloaded data {symbol}: {len(df)} candles")
-
-                    if len(symbols) >= 2:
-                        market_data[symbols[0]], market_data[symbols[1]] = \
-                            MarketDataUtils.synchronize_two(
-                                market_data[symbols[0]],
-                                market_data[symbols[1]]
-                            )
-                        print("✅ Data synchronized by time")
-                finally:
-                    for csv_path in csv_paths:
-                        self.csv_loader.cleanup_temp_file(csv_path)
+                    print(f"   BTC last: {market_data['BTCUSDT'].index[-1]} candles={len(market_data['BTCUSDT'])}")
+                    print(f"   ETH last: {market_data['ETHUSDT'].index[-1]} candles={len(market_data['ETHUSDT'])}")
+                except Exception:
+                    pass
 
         else:
             raise ValueError("data_source must be 'file' or 'download'")
