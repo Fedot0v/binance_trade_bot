@@ -28,6 +28,7 @@ from repositories.backtest_result_repository import BacktestResultRepository
 
 from clients.client_factory import ExchangeClientFactory
 from clients.binance_client import BinanceClientFactory
+import os
 
 
 S = TypeVar("S")
@@ -51,7 +52,9 @@ def get_service(service_class: Type[S], repo_class: Type[T]):
 
 
 def get_binance_factory() -> ExchangeClientFactory:
-    return BinanceClientFactory()
+    # Определяем testnet из переменной окружения, чтобы не расходиться с остальной конфигурацией
+    testnet = os.environ.get("BINANCE_TESTNET", "false").lower() == "true"
+    return BinanceClientFactory(testnet=testnet)
 
 
 get_strategy_service = get_service(

@@ -2,7 +2,7 @@ from uuid import UUID
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import select, update, desc, delete, func
+from sqlalchemy import select, update, desc, delete, func, nulls_last
 from sqlalchemy.orm import joinedload
 
 from repositories.base_repository import BaseRepository
@@ -174,3 +174,21 @@ class DealRepository(BaseRepository[Deal]):
         await session.execute(
             update(self.model).where(self.model.id == deal_id).values(min_price=min_price)
         )
+
+    async def get_last_closed_deal_by_symbol(self, user_id: UUID, symbol: str):
+        result = await self.session.execute(
+            select(self.model)
+            .where(
+                self.model.status == 'closed',
+                self.model.user_id == user_id,
+                self.model.symbol == symbol,
+                self.model.entry_price > 0.0,
+                self.model.side.in_(['BUY', 'SELL'])
+            )
+            .order_by(
+                nulls_last(self.model.closed_at.desc()),
+                self.model.id.desc()
+            )
+            .limit(1)
+        )
+        return result.scalar_one_or_none()

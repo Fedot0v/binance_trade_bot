@@ -31,6 +31,19 @@ class BinanceClientFactory(ExchangeClientFactory):
         """
         try:
             testnet = kwargs.get("testnet", self.testnet)
+            # Safe diagnostics: do not log secrets
+            try:
+                secret_len = len(api_secret) if api_secret is not None else 0
+                looks_encrypted = str(api_secret).startswith("gAAAA") if api_secret else False
+                self.logger.info(
+                    "[BinanceClientFactory] Creating AsyncClient testnet=%s api_key_prefix=%s api_secret_len=%s looks_encrypted=%s",
+                    testnet,
+                    (api_key[:6] + "***") if api_key else "<empty>",
+                    secret_len,
+                    looks_encrypted
+                )
+            except Exception:
+                pass
             client = await AsyncClient.create(
                 api_key=api_key,
                 api_secret=api_secret,
