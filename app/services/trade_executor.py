@@ -48,19 +48,46 @@ class TradeExecutor:
     ):
         """Executes a single trading intent."""
         print(f"Executing intent: {intent}")
-        
+        # Обработка закрытия позиции (reduceOnly)
+        if intent.sizing == "close":
+            try:
+                # Определяем текущую позицию и закрываем её целиком
+                pos = await self.order_service.get_position(api_key, api_secret, intent.symbol)
+                if not pos:
+                    print(f"No position found for {intent.symbol}, skipping close intent")
+                    return
+                position_amt = float(pos.get('positionAmt') or 0.0)
+                qty_to_close = abs(position_amt)
+                if qty_to_close <= 0:
+                    print(f"Zero position for {intent.symbol}, nothing to close")
+                    return
+                close_side = 'SELL' if position_amt > 0 else 'BUY'
+                print(f"Closing position: symbol={intent.symbol}, side={close_side}, qty={qty_to_close}")
+                await self.order_service.close_position(api_key, api_secret, intent.symbol, close_side, qty_to_close)
+                # Логируем действие стратегии (закрытие)
+                await self.log_service.add_log(
+                    StrategyLogCreate(
+                        user_id=user_id,
+                        deal_id=None,
+                        strategy=str(getattr(template, 'strategy_name', 'Unknown')),
+                        signal='close',
+                        comment=f"Closed position on {intent.symbol} via reduceOnly"
+                    ),
+                    session=session,
+                    autocommit=False
+                )
+                return
+            except Exception as e:
+                print(f"Error during close intent execution: {e}")
+                raise
+
+        # Открытие/добавление позиции
         last_price = await self._get_last_price(api_key, api_secret, intent.symbol, template.interval.value)
-        
         quantity = await self._calculate_quantity(intent, last_price, api_key, api_secret)
-        
-        order_result = await self._place_order(
-            api_key, api_secret, template, intent, quantity
-        )
-        
+        order_result = await self._place_order(api_key, api_secret, template, intent, quantity)
         entry_price = await self._fetch_entry_price(api_key, api_secret, intent.symbol, order_result['orderId'])
-        
         await self._record_deal(
-            user_id, bot_id, template, entry_price, order_result, intent, 
+            user_id, bot_id, template, entry_price, order_result, intent,
             quantity, session, strategy
         )
 

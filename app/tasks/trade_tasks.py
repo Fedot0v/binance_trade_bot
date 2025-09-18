@@ -24,7 +24,8 @@ def run_active_bots():
             expire_on_commit=False
         )
         async with async_session() as session:
-            trade_service = build_trade_service(session)
+            testnet_env = os.environ.get("BINANCE_TESTNET", "false").lower() == "true"
+            trade_service = build_trade_service(session, testnet=testnet_env)
 
             active_bots = (
                 await trade_service.userbot_service.get_all_active_bots(
@@ -68,7 +69,8 @@ def periodic_trade_cycle(bot_id, user_id, symbol):
             expire_on_commit=False
         )
         async with async_session() as session:
-            trade_service = build_trade_service(session)
+            testnet_env = os.environ.get("BINANCE_TESTNET", "false").lower() == "true"
+            trade_service = build_trade_service(session, testnet=testnet_env)
             await trade_service.run_trading_cycle(
                 bot_id=bot_id_converted,
                 user_id=user_id_converted,

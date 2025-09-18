@@ -7,10 +7,7 @@ from services.strategy_parameters import StrategyParameters
 
 class NovichokStrategy(BaseStrategy):
     def __init__(self, params: StrategyParameters):
-        # Используем параметры напрямую без конвертации
-        # Все процентные параметры хранятся как числа (не проценты)
 
-        # Создаем конфиг для BaseStrategy
         config = {
             'stop_loss_pct': params.get_float("stop_loss_pct", 0.02),
             'trailing_stop_pct': params.get_float("trailing_stop_pct", 0.005),
@@ -21,14 +18,13 @@ class NovichokStrategy(BaseStrategy):
 
         self.params = params
 
-        # Параметры стратегии (все в долях/числах, не процентах)
         self.ema_fast = self.params.get_int("ema_fast", 10)
         self.ema_slow = self.params.get_int("ema_slow", 30)
-        self.trend_threshold = self.params.get_float("trend_threshold", 0.001)  # доли
-        self.risk_pct = self.params.get_float("deposit_prct", 0.05)  # доли
-        self.stop_loss_pct = self.params.get_float("stop_loss_pct", 0.02)  # доли
-        self.take_profit_pct = self.params.get_float("take_profit_pct", 0.03)  # доли
-        self.trailing_stop_pct = self.params.get_float("trailing_stop_pct", 0.005)  # доли
+        self.trend_threshold = self.params.get_float("trend_threshold", 0.001)
+        self.risk_pct = self.params.get_float("deposit_prct", 0.05)
+        self.stop_loss_pct = self.params.get_float("stop_loss_pct", 0.02)
+        self.take_profit_pct = self.params.get_float("take_profit_pct", 0.03)
+        self.trailing_stop_pct = self.params.get_float("trailing_stop_pct", 0.005)
 
     def generate_signal(self, df: pd.DataFrame) -> str:
         if len(df) < self.ema_slow:
@@ -41,7 +37,6 @@ class NovichokStrategy(BaseStrategy):
         if diff < self.trend_threshold:
             return None
 
-        # Возвращаем сигнал входа (long/short)
         return 'long' if ema_fast.iloc[-1] > ema_slow.iloc[-1] else 'short'
 
     def calculate_position_size(self, balance: float) -> float:
@@ -58,7 +53,7 @@ class NovichokStrategy(BaseStrategy):
         """Рассчитывает цену тейк-профи на основе процента"""
         if side == "long":
             return entry_price * (1 + self.take_profit_pct)
-        else:  # short
+        else:
             return entry_price * (1 - self.take_profit_pct)
 
     def calculate_trailing_stop_price(self, entry_price: float, current_price: float, side: str, symbol: str) -> float:
