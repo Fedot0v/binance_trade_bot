@@ -8,7 +8,12 @@ import os
 
 
 if "FERNET_KEY" not in os.environ:
-    os.environ["FERNET_KEY"] = "test-fernet-key-for-testing-only-not-for-production-use"
+    try:
+        from cryptography.fernet import Fernet
+        os.environ["FERNET_KEY"] = Fernet.generate_key().decode()
+    except Exception:
+        # В крайнем случае оставим пустой, но большинство тестов не используют decrypt напрямую
+        os.environ["FERNET_KEY"] = "ZmFrZS1mZXJuZXQta2V5LWF2b2lkLXVzZQ=="
 
 from services.strategy_parameters import StrategyParameters
 from models.trade_models import Deal

@@ -78,16 +78,18 @@ class DualBacktestOrchestrator:
                             try:
                                 strategy_obj = getattr(strategy, 'strategy', strategy)
 
+                                # Нормализуем сторону для методов стратегии
+                                side_upper = str(intent.side).upper()
+                                side_alias_for_strategy = 'long' if side_upper in ('BUY', 'LONG') else 'short'
+
                                 if hasattr(strategy_obj, 'calculate_stop_loss_price'):
-                                    sl_side = 'BUY' if intent.side == 'BUY' else 'SELL'
                                     stop_loss_price = strategy_obj.calculate_stop_loss_price(
-                                        trade_result['price'], sl_side, intent.symbol
+                                        trade_result['price'], side_alias_for_strategy, intent.symbol
                                     )
                                 # Рассчитываем TP
                                 if hasattr(strategy_obj, 'calculate_take_profit_price'):
-                                    tp_side = 'BUY' if intent.side == 'BUY' else 'SELL'
                                     take_profit_price = strategy_obj.calculate_take_profit_price(
-                                        trade_result['price'], tp_side, intent.symbol
+                                        trade_result['price'], side_alias_for_strategy, intent.symbol
                                     )
                                 # Фолбэк, если методы отсутствуют или вернули None
                                 if stop_loss_price is None:

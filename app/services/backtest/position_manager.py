@@ -19,7 +19,8 @@ class PositionManager:
     def calculate_pnl(self, position: Dict[str, Any], current_price: float) -> float:
         entry_price = position['entry_price']
         size = position['size']
-        side = position['side']
+        raw_side = position.get('side')
+        side = 'BUY' if str(raw_side).upper() in ('BUY', 'LONG') else 'SELL'
         leverage = position.get('leverage', 1)
 
         if side == 'BUY':
@@ -28,7 +29,8 @@ class PositionManager:
 
     def calculate_pnl_pct(self, position: Dict[str, Any], current_price: float) -> float:
         entry_price = position['entry_price']
-        side = position['side']
+        raw_side = position.get('side')
+        side = 'BUY' if str(raw_side).upper() in ('BUY', 'LONG') else 'SELL'
         leverage = position.get('leverage', 1)
         if entry_price == 0:
             return 0.0
@@ -45,6 +47,8 @@ class PositionManager:
         high_price = ohlc['high']
         low_price = ohlc['low']
         close_price = ohlc['close']
+        raw_side = position.get('side')
+        side = 'BUY' if str(raw_side).upper() in ('BUY', 'LONG') else 'SELL'
         
         # Проверяем SL/TP если они заданы
         sl_price = position.get('stop_loss')
@@ -55,13 +59,13 @@ class PositionManager:
             tp_hit = False
             
             if sl_price is not None:
-                if position['side'] == 'BUY':
+                if side == 'BUY':
                     sl_hit = low_price <= sl_price  # Для лонга: low свечи задел SL
                 else:
                     sl_hit = high_price >= sl_price  # Для шорта: high свечи задел SL
                     
             if tp_price is not None:
-                if position['side'] == 'BUY':
+                if side == 'BUY':
                     tp_hit = high_price >= tp_price  # Для лонга: high свечи задел TP
                 else:
                     tp_hit = low_price <= tp_price  # Для шорта: low свечи задел TP
@@ -107,11 +111,16 @@ class PositionManager:
             if symbol not in market_data:
                 continue
             last_row = market_data[symbol].iloc[-1]
+            open_val = float(last_row['open']) if 'open' in last_row else float(position['entry_price'])
+            close_val = float(last_row['close']) if 'close' in last_row else open_val
+            high_val = float(last_row['high']) if 'high' in last_row else max(open_val, close_val)
+            low_val = float(last_row['low']) if 'low' in last_row else min(open_val, close_val)
+
             ohlc = {
-                'open': float(last_row['open']) if 'open' in last_row else float(position['entry_price']),
-                'high': float(last_row['high']) if 'high' in last_row else float(position['entry_price']),
-                'low': float(last_row['low']) if 'low' in last_row else float(position['entry_price']),
-                'close': float(last_row['close']) if 'close' in last_row else float(position['entry_price']),
+                'open': open_val,
+                'high': high_val,
+                'low': low_val,
+                'close': close_val,
             }
 
             try:
@@ -185,6 +194,11 @@ class PositionManager:
 
             should_close, reason, exit_price = self.check_close_conditions(position, ohlc, current_time)
             if should_close:
+                if reason in ('stop_loss', 'take_profit'):
+                    try:
+                        print(f"[BT-{reason.upper()}] {symbol} at {exit_price:.2f} side={position.get('side')} sl={position.get('stop_loss')} tp={position.get('take_profit')} H/L={ohlc['high']}/{ohlc['low']} t={current_time}")
+                    except Exception:
+                        pass
                 positions_to_close.append((symbol, position, reason, exit_price))
 
         for symbol, position, reason, exit_price in positions_to_close:

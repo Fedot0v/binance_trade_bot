@@ -176,26 +176,34 @@ class CompensationStrategy(BaseStrategy):
             return balance * self.eth_risk_pct
     
     def calculate_stop_loss_price(self, entry_price: float, side: str, symbol: str = "BTC") -> float:
-        """Рассчитывает цену стоп-лосса для BTC или ETH"""
-        # Нормализуем символ: поддерживаем 'BTC'/'ETH' и тикеры типа 'BTCUSDT'/'ETHUSDT'
+        """Рассчитывает цену стоп-лосса для BTC или ETH.
+        Поддерживает значения стороны как 'BUY'/'SELL' и 'long'/'short'.
+        """
         sym = (symbol or "BTC").upper()
         is_btc = sym == "BTC" or sym.startswith("BTC")
-        # Выбираем проценты по активу
         stop_loss_pct = self.btc_stop_loss_pct if is_btc else self.eth_stop_loss_pct
-        if side == "BUY":
+
+        side_upper = (side or "").upper()
+        is_long = side_upper in ("BUY", "LONG")
+
+        if is_long:
             return entry_price * (1 - stop_loss_pct)
-        else:
-            return entry_price * (1 + stop_loss_pct)
+        return entry_price * (1 + stop_loss_pct)
 
     def calculate_take_profit_price(self, entry_price: float, side: str, symbol: str = "BTC") -> float:
-        """Рассчитывает цену тейк-профита для BTC или ETH"""
+        """Рассчитывает цену тейк-профита для BTC или ETH.
+        Поддерживает значения стороны как 'BUY'/'SELL' и 'long'/'short'.
+        """
         sym = (symbol or "BTC").upper()
         is_btc = sym == "BTC" or sym.startswith("BTC")
         take_profit_pct = self.btc_take_profit_pct if is_btc else self.eth_take_profit_pct
-        if side == "BUY":
+
+        side_upper = (side or "").upper()
+        is_long = side_upper in ("BUY", "LONG")
+
+        if is_long:
             return entry_price * (1 + take_profit_pct)
-        else:
-            return entry_price * (1 - take_profit_pct)
+        return entry_price * (1 - take_profit_pct)
 
     def should_trigger_compensation(self, btc_df: pd.DataFrame, eth_df: pd.DataFrame, current_price: float, current_time: datetime) -> bool:
         """
