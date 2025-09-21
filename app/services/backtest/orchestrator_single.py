@@ -77,19 +77,18 @@ class SingleBacktestOrchestrator:
                             stop_loss_price = None
                             take_profit_price = None
                             try:
+                                side_upper = str(intent.side).upper()
+                                strategy_side = 'long' if side_upper in ('BUY', 'LONG') else 'short'
+
                                 if hasattr(strategy, 'calculate_stop_loss_price'):
-                                    strategy_side = 'long' if intent.side == 'BUY' else 'short'
                                     stop_loss_price = strategy.calculate_stop_loss_price(trade_result['price'], strategy_side, intent.symbol)
-                                    # Проверяем на None
                                     if stop_loss_price is None:
-                                        stop_loss_price = trade_result['price'] * (0.98 if intent.side == 'BUY' else 1.02)
+                                        stop_loss_price = trade_result['price'] * (0.98 if strategy_side == 'long' else 1.02)
 
                                 if hasattr(strategy, 'calculate_take_profit_price'):
-                                    strategy_side = 'long' if intent.side == 'BUY' else 'short'
                                     take_profit_price = strategy.calculate_take_profit_price(trade_result['price'], strategy_side, intent.symbol)
-                                    # Проверяем на None
                                     if take_profit_price is None:
-                                        take_profit_price = trade_result['price'] * (1.03 if intent.side == 'BUY' else 0.97)
+                                        take_profit_price = trade_result['price'] * (1.03 if strategy_side == 'long' else 0.97)
                             except Exception:
                                 pass
                             open_positions[intent.symbol] = {

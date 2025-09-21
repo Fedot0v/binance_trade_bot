@@ -276,8 +276,31 @@ class UniversalBacktestEngine(BacktestEngine):
 
         self.context.open_positions[intent.symbol] = position
 
-        # Set stop loss via strategy
+        # Set stop loss and take profit via strategy
         self._set_initial_stop_loss(position, intent.symbol)
+        try:
+            if position.get('stop_loss') is not None or position.get('take_profit') is not None:
+                print(f"[BT-OPEN] {intent.symbol} {intent.side} @ {position['entry_price']:.2f} SL={position.get('stop_loss')} TP={position.get('take_profit')} t={current_time}")
+        except Exception:
+            pass
+        try:
+            # Рассчитываем TP аналогично SL, если доступен метод
+            if hasattr(self.context.strategy, 'strategy') and self.context.strategy.strategy is not None:
+                strategy = self.context.strategy.strategy
+            elif hasattr(self.context.strategy, 'legacy') and self.context.strategy.legacy is not None:
+                strategy = self.context.strategy.legacy
+            else:
+                strategy = self.context.strategy
+
+            if hasattr(strategy, 'calculate_take_profit_price'):
+                side_upper = str(position['side']).upper()
+                side_alias = 'long' if side_upper in ('BUY', 'LONG') else 'short'
+                tp = strategy.calculate_take_profit_price(position['entry_price'], side_alias, intent.symbol)
+                if tp is not None:
+                    position['take_profit'] = tp
+                    print(f"🎯 [BACKTEST] Set initial take profit: {tp:.4f} for position {intent.symbol}")
+        except Exception as e:
+            print(f"⚠️ [BACKTEST] Error setting take profit: {e}")
 
         # Add trade
         trade = {
@@ -353,6 +376,11 @@ class UniversalBacktestEngine(BacktestEngine):
                     sl_hit = ohlc['low'] <= sl_price
                 else:
                     sl_hit = ohlc['high'] >= sl_price
+                if sl_hit:
+                    try:
+                        print(f"[BT-SL-HIT] {position['symbol']} side={position['side']} SL={sl_price} H/L={ohlc['high']}/{ohlc['low']} t={current_time}")
+                    except Exception:
+                        pass
 
             if tp_price is not None:
                 if position['side'] == 'BUY':
@@ -396,16 +424,18 @@ class UniversalBacktestEngine(BacktestEngine):
 
             mock_md = {symbol: mock_df}
 
-            # Получаем стратегию для расчета стоп-лосса
-            if hasattr(self.context.strategy, 'legacy'):
-                # Это адаптер, используем legacy стратегию
+            # Получаем стратегию для расчета стоп-лосса (отдаём приоритет внутренней стратегии адаптера)
+            if hasattr(self.context.strategy, 'strategy') and self.context.strategy.strategy is not None:
+                strategy = self.context.strategy.strategy
+            elif hasattr(self.context.strategy, 'legacy') and self.context.strategy.legacy is not None:
                 strategy = self.context.strategy.legacy
             else:
                 strategy = self.context.strategy
 
             # Рассчитываем стоп-лосс
             if hasattr(strategy, 'calculate_stop_loss_price'):
-                side = 'long' if position['side'] == 'BUY' else 'short'
+                side_upper = str(position['side']).upper()
+                side = 'long' if side_upper in ('BUY', 'LONG') else 'short'
                 stop_loss_price = strategy.calculate_stop_loss_price(
                     position['entry_price'],
                     side,
