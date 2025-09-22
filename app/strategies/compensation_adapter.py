@@ -101,8 +101,17 @@ class CompensationAdapter(Strategy):
 
         # Обновляем состояние стратегии на основе позиций бэктеста
         self._update_strategy_state_from_positions(btc_position, eth_position, current_time)
-        # Если BTC отсутствует, помечаем закрытие и разрешаем пост-компенсацию в ограниченное окно
-        if not btc_position:
+        # Обновляем флаг had_btc, если в этом прогоне видим реальную BTC позицию
+        if btc_position:
+            try:
+                self.strategy.state.had_btc = True
+                # Обновим last_btc_deal_id для привязки компенсации к текущему BTC
+                deal_id = btc_position.get('deal_id', 1)
+                self.strategy.state.last_btc_deal_id = deal_id
+            except Exception:
+                pass
+        # Если BTC отсутствует, помечаем закрытие ТОЛЬКО если ранее в этом прогоне BTC уже открывался (had_btc)
+        if not btc_position and getattr(self.strategy.state, 'had_btc', False):
             self.strategy.mark_btc_closed(current_time)
 
         # print(f"🔍 DEBUG: Состояние стратегии после обновления:")
@@ -143,6 +152,13 @@ class CompensationAdapter(Strategy):
                     btc_df, current_btc_price, current_time, template, md
                 )
                 if eth_intент:
+                    # Доп. защита: запрещаем второй ETH для того же BTC deal
+                    current_deal_id = getattr(self.strategy.state, 'last_btc_deal_id', None)
+                    if current_deal_id is not None and getattr(self.strategy.state, 'compensation_done_for_deal_id', None) == current_deal_id:
+                        if verbose:
+                            print("[COMP] Компенсация для этого BTC уже выполнена — пропускаем повторный ETH")
+                    else:
+                        self.strategy.state.compensation_done_for_deal_id = current_deal_id
                     print(f"✅ CompensationAdapter: Создан ETH compensation intent: {eth_intент.symbol} {eth_intент.side} {eth_intент.role}")
                     intents.append(eth_intент)
                 else:
@@ -150,15 +166,29 @@ class CompensationAdapter(Strategy):
                         print("[COMP] Компенсация не требуется: условия не выполнены")
 
         # Дополнительно: если BTC закрыт недавно, но ETH ещё не открыт — проверим компенсацию в пост-окне
-        if not btc_position and not eth_position and not self.strategy.state.compensation_triggered and self.strategy.can_compensate_after_close(current_time):
+        # Разрешаем пост-компенсацию только если в этом прогоне уже был реальный вход в BTC (had_btc=True)
+        if (
+            not btc_position
+            and not eth_position
+            and not self.strategy.state.compensation_triggered
+            and getattr(self.strategy.state, 'had_btc', False)
+            and self.strategy.can_compensate_after_close(current_time)
+        ):
             if verbose:
                 print("[COMP] Пост-компенсация: BTC закрыт недавно, проверяем условия для ETH")
             eth_intent_post = self._generate_eth_compensation_intent(
                 btc_df, current_btc_price, current_time, template, md
             )
             if eth_intent_post:
-                print(f"✅ CompensationAdapter: Создан ETH compensation intent (post-close): {eth_intent_post.symbol} {eth_intent_post.side} {eth_intent_post.role}")
-                intents.append(eth_intent_post)
+                # Пост-компенсация: также блокируем повторную компенсацию для того же BTC
+                last_deal_id = getattr(self.strategy.state, 'last_btc_deal_id', None)
+                if last_deal_id is not None and getattr(self.strategy.state, 'compensation_done_for_deal_id', None) == last_deal_id:
+                    if verbose:
+                        print("[COMP] Пост-компенсация уже выполнена для этого BTC — пропускаем")
+                else:
+                    self.strategy.state.compensation_done_for_deal_id = last_deal_id
+                    print(f"✅ CompensationAdapter: Создан ETH compensation intent (post-close): {eth_intent_post.symbol} {eth_intent_post.side} {eth_intent_post.role}")
+                    intents.append(eth_intent_post)
             # else:
             #     print("❌ CompensationAdapter: ETH compensation intent не создан")
 

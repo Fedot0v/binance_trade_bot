@@ -111,6 +111,14 @@ class UniversalBacktestEngine(BacktestEngine):
 
     def _initialize_backtest(self):
         """Initialize backtest"""
+        # Сбрасываем состояние стратегии при старте бэктеста, если метод доступен
+        try:
+            strategy = getattr(self.context.strategy, 'strategy', self.context.strategy)
+            if hasattr(strategy, 'reset_state') and callable(getattr(strategy, 'reset_state')):
+                strategy.reset_state()
+        except Exception:
+            pass
+
         all_times = []
         for df in self.context.market_data.values():
             if not df.empty:

@@ -30,6 +30,12 @@ class CompensationState:
     btc_impulse_detected: bool = False
     partial_close_done: bool = False
     btc_closed_time: Optional[datetime] = None
+    # Флаг текущего прогона: был ли когда-либо открыт BTC в ЭТОМ бэктесте
+    had_btc: bool = False
+    # Идентификатор последней наблюдаемой BTC-сделки (для связи пост-компенсации)
+    last_btc_deal_id: Optional[int] = None
+    # Для какого BTC deal уже выполнена компенсация (запрет повторного ETH)
+    compensation_done_for_deal_id: Optional[int] = None
     
     def reset_state(self) -> None:
         """Сбрасывает состояние стратегии"""
@@ -350,7 +356,12 @@ class CompensationStrategy(BaseStrategy):
         return True
 
     def mark_btc_closed(self, current_time: datetime) -> None:
-        """Помечает BTC как недавно закрытую, чтобы разрешить пост-компенсацию."""
+        """Помечает BTC как недавно закрытую, чтобы разрешить пост-компенсацию.
+        Разрешаем только если в этом бэктесте уже был реальный вход в BTC (had_btc=True).
+        """
+        if not getattr(self.state, 'had_btc', False):
+            # Игнорируем попытки пометить закрытие до первого реального входа BTC в этом прогоне
+            return
         if not self.state.btc_closed_time:
             self.state.btc_closed_time = current_time
             print(f"[COMP] BTC позиция помечена как закрытая: t_close={self.state.btc_closed_time}")
