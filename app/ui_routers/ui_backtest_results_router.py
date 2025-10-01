@@ -43,6 +43,12 @@ async def get_backtest_results(
     if status == "completed" and results_data:
         try:
             results = BacktestResult.model_validate(results_data) # Преобразуем словарь в модель
+            # Гарантируем сортировку сделок по времени открытия
+            try:
+                if results and getattr(results, 'trades', None):
+                    results.trades = sorted(results.trades, key=lambda t: t.entry_time)
+            except Exception:
+                pass
         except Exception as e:
             error = f"Ошибка валидации результатов бэктеста: {e}"
             status = "failed" # Помечаем как failed, если валидация не удалась

@@ -79,10 +79,30 @@ class CompensationAdapter(Strategy):
         eth_position = None
 
         if open_state:
+            def _extract_position(node: Any) -> Optional[Dict[str, Any]]:
+                try:
+                    if isinstance(node, dict):
+                        return node.get('position') or (node if 'entry_price' in node and 'side' in node else None)
+                    if hasattr(node, 'position'):
+                        pos = getattr(node, 'position')
+                        if isinstance(pos, dict):
+                            return pos
+                    maybe = {
+                        'deal_id': getattr(node, 'id', None),
+                        'entry_price': getattr(node, 'entry_price', None),
+                        'entry_time': getattr(node, 'opened_at', None),
+                        'side': getattr(node, 'side', None),
+                    }
+                    if maybe['entry_price'] is not None and maybe['side'] is not None:
+                        return maybe
+                except Exception:
+                    return None
+                return None
+
             if btc_symbol in open_state:
-                btc_position = open_state[btc_symbol].get('position')
+                btc_position = _extract_position(open_state[btc_symbol])
             if eth_symbol in open_state:
-                eth_position = open_state[eth_symbol].get('position')
+                eth_position = _extract_position(open_state[eth_symbol])
 
         # КРИТИЧЕСКАЯ ПРОВЕРКА: ETH может существовать только вместе с BTC
         # Если есть ETH позиция без BTC — немедленно закрываем ETH и чистим состояние ETH

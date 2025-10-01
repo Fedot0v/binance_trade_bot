@@ -38,6 +38,13 @@ class DualBacktestOrchestrator:
         pending_opens: List[Any] = []
 
         print(f"\n🚀 ЗАПУСК КОМПЕНСАЦИОННОГО БЕКТЕСТА (dual): {strategy_name}")
+        # Сброс состояния стратегии перед началом бэктеста (если поддерживается)
+        try:
+            strategy_obj = getattr(strategy, 'strategy', strategy)
+            if hasattr(strategy_obj, 'reset_state') and callable(getattr(strategy_obj, 'reset_state')):
+                strategy_obj.reset_state()
+        except Exception:
+            pass
         for step in self.data_feed.iter_dual(btc_data, eth_data, symbol1, symbol2, warmup=0):
             i = step['index']
             current_time = step['time']
@@ -162,6 +169,26 @@ class DualBacktestOrchestrator:
                                 del open_positions[intent.symbol]
                                 print(f"✅ Закрыта позиция {intent.symbol}: PnL ${pnl:,.2f}")
                         else:
+                            # Жёсткая защита: не допускать открытия ETH раньше BTC
+                            try:
+                                is_eth_open_intent = (intent.symbol == symbol2)
+                                if is_eth_open_intent:
+                                    btc_is_open = (symbol1 in open_positions)
+                                    allow_post_window = False
+                                    try:
+                                        strategy_obj = getattr(strategy, 'strategy', strategy)
+                                        if hasattr(strategy_obj, 'can_compensate_after_close'):
+                                            had_btc = bool(getattr(getattr(strategy_obj, 'state', None), 'had_btc', False))
+                                            allow_post_window = had_btc and bool(strategy_obj.can_compensate_after_close(current_time))
+                                    except Exception:
+                                        allow_post_window = False
+
+                                    if not btc_is_open and not allow_post_window:
+                                        print("⛔ Пропускаем ETH открытие: BTC не открыт и пост-окно компенсации недоступно")
+                                        continue
+                            except Exception:
+                                pass
+
                             # Открытия откладываем
                             pending_opens.append(intent)
                             print(f"📝 Отложено открытие: {intent.symbol} {intent.side} (будет исполнено на следующей свече)")

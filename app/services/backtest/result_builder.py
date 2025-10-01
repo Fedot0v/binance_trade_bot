@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Dict, Any, List
+from datetime import datetime
 from schemas.backtest import BacktestResult
 
 
@@ -21,6 +22,12 @@ class ResultBuilder:
         parameters: Dict[str, Any],
         leverage: int = 1,
     ) -> BacktestResult:
+        # Сортируем сделки по времени открытия, чтобы первая строка соответствовала первой ОТКРЫТОЙ сделке
+        try:
+            trades = sorted(trades, key=lambda t: t.get('entry_time') or datetime.max)
+        except Exception:
+            pass
+
         stats = self.stats_service.calculate_statistics(trades, equity_curve, initial_balance)
         return BacktestResult(
             strategy_name=strategy_name,
